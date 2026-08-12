@@ -115,6 +115,6 @@
 
 <p align="center">
   <a href="https://www.instagram.com/Liki">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" width="200"/>
+    <img src="https://cdn.instagram.com/buttons/v2/default-yellow.png" width="200"/>
   </a>
 </p>
