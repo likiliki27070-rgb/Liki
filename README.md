@@ -1,6 +1,4 @@
-<img width="1400" height="720" alt="limo-animated-architecture (1)" src="https://github.com/user-attachments/assets/691ddd14-c8c7-4260-be21-1fe8f051b291" />LIMO — Quantum-Enhanced Adaptive Urban Traffic Intelligence
 
-<p align="center">
 
 <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020611"/><stop offset=".55" stop-color="#071429"/><stop offset="1" stop-color="#0b2035"/></linearGradient>
 <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#76d6ff" stop-opacity=".55"/><stop offset=".5" stop-color="#205b9f" stop-opacity=".32"/><stop offset="1" stop-color="#0a1730" stop-opacity=".82"/></linearGradient>
