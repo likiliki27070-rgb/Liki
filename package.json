@@ -1,0 +1,22 @@
+{
+  "name": "quantum-traffic",
+  "version": "1.0.0",
+  "description": "Quantum-Enhanced Adaptive Urban Traffic Optimization - Interactive 3D Prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node server.js"
+  },
+  "keywords": [
+    "quantum-computing",
+    "qubo",
+    "qaoa",
+    "traffic-optimization",
+    "smart-city",
+    "threejs",
+    "react"
+  ],
+  "author": "Quantum Traffic Research Group",
+  "license": "MIT"
+}
