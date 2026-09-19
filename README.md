@@ -2,9 +2,6 @@ LIMO — Quantum-Enhanced Adaptive Urban Traffic Intelligence
 
 <p align="center">
 
-<title id="title">LIMO animated smart city</title>
-<desc id="desc">Animated futuristic city with moving traffic, pulsing signals, quantum data paths, and a LIMO landmark.</desc>
-<defs>
 <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020611"/><stop offset=".55" stop-color="#071429"/><stop offset="1" stop-color="#0b2035"/></linearGradient>
 <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#76d6ff" stop-opacity=".55"/><stop offset=".5" stop-color="#205b9f" stop-opacity=".32"/><stop offset="1" stop-color="#0a1730" stop-opacity=".82"/></linearGradient>
 <linearGradient id="road" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#071019"/><stop offset=".5" stop-color="#17283b"/><stop offset="1" stop-color="#071019"/></linearGradient>
