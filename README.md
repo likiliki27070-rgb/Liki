@@ -1,6 +1,4 @@
-from pathlib import Path
-
-html = r'''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -143,12 +141,7 @@ document.getElementById("delay").textContent=(10+Math.random()*5).toFixed(1);
 document.getElementById("pause").onclick=()=>{paused=!paused;document.getElementById("pause").textContent=paused?"RESUME":"PAUSE"}
 </script>
 </body>
-</html>'''
-
-path = Path("/mnt/data/LIMO_Quantum_Enhanced_Adaptive_Urban_Traffic_Optimization.html")
-path.write_text(html, encoding="utf-8")
-print(path)
-
+</html>
 ### ✨ Highlights & Capabilities
 - 🌍 **Global 3D Earth Globe**: Seamless orbital view with atmosphere, day/night city lights, and smooth zoom transition into urban hubs.
 - 🗼 **Avengers Tower-Style Superhero Landmark**: $86\text{m}$ futuristic skyscraper with cantilevered flight deck/helipad, PBR blue-tinted glass, sweeping observation prow, rooftop radar array, and landscaped entrance plaza.
