@@ -3735,10 +3735,10 @@ async function fetchGeoapifyRoute(waypoints, mode = 'drive', avoid = '') {
   }
 }
 
-// Geoapify Reachability & Isoline helper with fallback (Key: 5557e9758dbf492abbc58c3de058f972)
+// Geoapify Reachability & Isoline helper with fallback (Key: 2378af2a2bf64130bef3abbcf70865d5)
 async function fetchGeoapifyIsoline(lat, lon, range = 300, type = 'time', mode = 'drive') {
   if (lat == null || lon == null) return null;
-  const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '5557e9758dbf492abbc58c3de058f972';
+  const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '2378af2a2bf64130bef3abbcf70865d5';
   try {
     const url = `/api/isoline?lat=${lat}&lon=${lon}&type=${type}&mode=${mode}&range=${range}`;
     const res = await fetch(url);
@@ -3753,6 +3753,105 @@ async function fetchGeoapifyIsoline(lat, lon, range = 300, type = 'time', mode =
       return fbData;
     } catch (e2) {
       console.warn("Isoline request failed:", e2);
+      return null;
+    }
+  }
+}
+
+// Geoapify Places API helper with fallback (Key: c5191509836e498095c57bf059ac791f)
+async function fetchGeoapifyPlaces(categories = 'commercial,catering', filter = 'circle:-122.4015,37.7855,1200', limit = 12, bias = '') {
+  const placesKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.placesKey) || 'c5191509836e498095c57bf059ac791f';
+  try {
+    let url = `/api/places?categories=${encodeURIComponent(categories)}&filter=${encodeURIComponent(filter)}&limit=${limit}`;
+    if (bias) url += `&bias=${encodeURIComponent(bias)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      let fbUrl = `https://api.geoapify.com/v2/places?categories=${encodeURIComponent(categories)}&filter=${encodeURIComponent(filter)}&limit=${limit}&apiKey=${placesKey}`;
+      if (bias) fbUrl += `&bias=${encodeURIComponent(bias)}`;
+      const fb = await fetch(fbUrl);
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("Places request failed:", e2);
+      return null;
+    }
+  }
+}
+
+// Geoapify Place Details API helper with fallback (Key: 83ae1c36bd23478598f4501c4d9f114d)
+async function fetchGeoapifyPlaceDetails(lat, lon, id = null) {
+  const placeDetailsKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.placeDetailsKey) || '83ae1c36bd23478598f4501c4d9f114d';
+  try {
+    let url = id ? `/api/place-details?id=${encodeURIComponent(id)}` : `/api/place-details?lat=${lat}&lon=${lon}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      let fbUrl = id ? `https://api.geoapify.com/v2/place-details?id=${encodeURIComponent(id)}&apiKey=${placeDetailsKey}` : `https://api.geoapify.com/v2/place-details?lat=${lat}&lon=${lon}&apiKey=${placeDetailsKey}`;
+      const fb = await fetch(fbUrl);
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("Place Details request failed:", e2);
+      return null;
+    }
+  }
+}
+
+// Geoapify IP Geolocation API helper with fallback (Key: 0ae0a18aa62240379014c7b7d7e08c28)
+async function fetchGeoapifyIpGeo(ip = '') {
+  const ipGeoKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.ipGeoKey) || '0ae0a18aa62240379014c7b7d7e08c28';
+  try {
+    let url = `/api/ipinfo`;
+    if (ip) url += `?ip=${encodeURIComponent(ip)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      let fbUrl = `https://api.geoapify.com/v1/ipinfo?apiKey=${ipGeoKey}`;
+      if (ip) fbUrl += `&ip=${encodeURIComponent(ip)}`;
+      const fb = await fetch(fbUrl);
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("IP Geolocation request failed:", e2);
+      return null;
+    }
+  }
+}
+
+// Geoapify Map Matching API helper with fallback (Key: 8fca0f76ccf44e46b3cd9a3cac47e6ff)
+async function fetchGeoapifyMapMatching(waypoints, mode = 'drive') {
+  const mapMatchingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.mapMatchingKey) || '8fca0f76ccf44e46b3cd9a3cac47e6ff';
+  const postData = { mode, waypoints };
+  try {
+    const res = await fetch('/api/mapmatching', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(postData)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      const fb = await fetch(`https://api.geoapify.com/v1/mapmatching?apiKey=${mapMatchingKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("Map Matching request failed:", e2);
       return null;
     }
   }
@@ -3991,6 +4090,8 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const autocompleteTimer = useRef(null);
   const routeLayersRef = useRef([]);
   const isolineLayersRef = useRef([]);
+  const placesLayersRef = useRef([]);
+  const matchedLayersRef = useRef([]);
 
   // Turn-by-Turn Routing States
   const [activeRoute, setActiveRoute] = useState(null);
@@ -4000,16 +4101,35 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const [isRouting, setIsRouting] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
 
-  // Reachability & Isoline States (Key: 5557e9758dbf492abbc58c3de058f972)
+  // Reachability & Isoline States (Key: 2378af2a2bf64130bef3abbcf70865d5)
   const [activeIsoline, setActiveIsoline] = useState(null);
   const [isolineNode, setIsolineNode] = useState('I3');
   const [isolineRange, setIsolineRange] = useState(300);
   const [isolineMode, setIsolineMode] = useState('drive');
   const [isCalculatingIsoline, setIsCalculatingIsoline] = useState(false);
 
+  // Places & Place Details States (Keys: c5191509836e498095c57bf059ac791f / 83ae1c36bd23478598f4501c4d9f114d)
+  const [showPlaces, setShowPlaces] = useState(false);
+  const [placesCategory, setPlacesCategory] = useState('commercial,catering');
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [activePlaceDetail, setActivePlaceDetail] = useState(null);
+  const [placesCount, setPlacesCount] = useState(0);
+
+  // IP Geolocation State (Key: 0ae0a18aa62240379014c7b7d7e08c28)
+  const [ipGeoInfo, setIpGeoInfo] = useState(null);
+  const [isDetectingIp, setIsDetectingIp] = useState(false);
+
+  // Map Matching States (Key: 8fca0f76ccf44e46b3cd9a3cac47e6ff)
+  const [isMapMatching, setIsMapMatching] = useState(false);
+  const [mapMatchedData, setMapMatchedData] = useState(null);
+
   const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
   const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
-  const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '5557e9758dbf492abbc58c3de058f972';
+  const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '2378af2a2bf64130bef3abbcf70865d5';
+  const placesKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.placesKey) || 'c5191509836e498095c57bf059ac791f';
+  const placeDetailsKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.placeDetailsKey) || '83ae1c36bd23478598f4501c4d9f114d';
+  const ipGeoKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.ipGeoKey) || '0ae0a18aa62240379014c7b7d7e08c28';
+  const mapMatchingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.mapMatchingKey) || '8fca0f76ccf44e46b3cd9a3cac47e6ff';
   const geocodingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.geocodingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
   const reverseKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.reverseKey) || 'b9a95414ae8a4dd3b9d2f97ae2fc0546';
   const autocompleteKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.autocompleteKey) || '509e607576bb4c1d94ee7f92dce287da';
@@ -4106,12 +4226,25 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
         routeLayersRef.current = [];
         isolineLayersRef.current.forEach(l => l.remove());
         isolineLayersRef.current = [];
+        placesLayersRef.current.forEach(l => l.remove());
+        placesLayersRef.current = [];
+        matchedLayersRef.current.forEach(l => l.remove());
+        matchedLayersRef.current = [];
         mapRef.current.remove();
         mapRef.current = null;
         markersRef.current = {};
         roadsRef.current = [];
       }
     };
+  }, []);
+
+  // Initial operator IP Geolocation query on mount
+  useEffect(() => {
+    fetchGeoapifyIpGeo().then(data => {
+      if (data && (data.city || data.country || data.ip)) {
+        setIpGeoInfo(data);
+      }
+    }).catch(() => {});
   }, []);
 
   // Update Tile Layer on Style Change
@@ -4571,7 +4704,7 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
       geometryType: data.features[0].geometry.type
     });
 
-    setStatusMessage(`Reachability Isochrone plotted: ${rangeMin} min ${mode} zone centered on ${node.id} (Key: 5557e975...)`);
+    setStatusMessage(`Reachability Isochrone plotted: ${rangeMin} min ${mode} zone centered on ${node.id} (Key: 2378af2a...)`);
   };
 
   const clearActiveIsoline = () => {
@@ -4579,6 +4712,239 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
     isolineLayersRef.current = [];
     setActiveIsoline(null);
     setStatusMessage('Active reachability zone cleared.');
+  };
+
+  // Geoapify Places (POI) & Place Details Handler
+  const togglePlaces = async (cat = placesCategory) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (showPlaces && placesLayersRef.current.length > 0 && cat === placesCategory) {
+      clearPlaces();
+      return;
+    }
+
+    setIsLoadingPlaces(true);
+    setStatusMessage(`Scanning Geoapify Places (${cat}) in downtown grid (Key: ${placesKey.slice(0, 8)}...)...`);
+
+    // Clear prior places layers
+    placesLayersRef.current.forEach(l => l.remove());
+    placesLayersRef.current = [];
+
+    const data = await fetchGeoapifyPlaces(cat, 'circle:-122.4015,37.7855,1400', 16);
+    setIsLoadingPlaces(false);
+
+    if (!data || !data.features || data.features.length === 0) {
+      setStatusMessage(`No places returned for category "${cat}".`);
+      setShowPlaces(false);
+      setPlacesCount(0);
+      return;
+    }
+
+    const feats = data.features;
+    setPlacesCount(feats.length);
+    setShowPlaces(true);
+    setPlacesCategory(cat);
+
+    feats.forEach(feat => {
+      const [lon, lat] = feat.geometry.coordinates;
+      const prop = feat.properties || {};
+      const name = prop.name || prop.address_line1 || 'Commercial Venue';
+      const catList = prop.categories || [];
+      const primaryCat = catList[0] || 'service';
+      
+      let iconEmoji = '📍';
+      let pinColor = '#8b5cf6';
+      if (primaryCat.includes('catering') || primaryCat.includes('restaurant') || primaryCat.includes('cafe')) {
+        iconEmoji = '☕';
+        pinColor = '#f59e0b';
+      } else if (primaryCat.includes('commercial') || primaryCat.includes('retail') || primaryCat.includes('shop')) {
+        iconEmoji = '🛍️';
+        pinColor = '#06b6d4';
+      } else if (primaryCat.includes('healthcare') || primaryCat.includes('pharmacy') || primaryCat.includes('hospital')) {
+        iconEmoji = '🏥';
+        pinColor = '#ef4444';
+      } else if (primaryCat.includes('parking')) {
+        iconEmoji = '🅿️';
+        pinColor = '#3b82f6';
+      } else if (primaryCat.includes('tourism') || primaryCat.includes('hotel')) {
+        iconEmoji = '🏨';
+        pinColor = '#10b981';
+      }
+
+      const poiIcon = L.divIcon({
+        className: 'custom-poi-marker',
+        html: `
+          <div style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <div style="width: 24px; height: 24px; border-radius: 9999px; background: ${pinColor}; border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; font-size: 11px;">
+              ${iconEmoji}
+            </div>
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const marker = L.marker([lat, lon], { icon: poiIcon }).addTo(map);
+
+      marker.on('click', async () => {
+        setStatusMessage(`Inspecting Place Details: ${name} (Geoapify Place Details API)...`);
+        const placeId = prop.place_id;
+        const detailsData = await fetchGeoapifyPlaceDetails(lat, lon, placeId);
+        const detailsProp = (detailsData && detailsData.features && detailsData.features[0] && detailsData.features[0].properties) || prop;
+        setActivePlaceDetail(detailsProp);
+
+        const catsText = (detailsProp.categories || []).slice(0, 3).join(', ');
+        const popupHtml = `
+          <div style="padding: 12px; font-family: 'Inter', sans-serif; max-width: 270px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 10px; font-weight: 800; color: ${pinColor}; text-transform: uppercase;">Geoapify Place Details</span>
+              <span style="font-size: 9px; background: #f1f5f9; color: #475569; padding: 1px 6px; border-radius: 4px; font-weight: 600;">Verified POI</span>
+            </div>
+            <h4 style="font-size: 13px; font-weight: 700; color: #0f172a; margin: 2px 0 4px 0;">${name}</h4>
+            <p style="font-size: 11px; color: #64748b; margin: 0 0 6px 0;">${detailsProp.formatted || detailsProp.address_line2 || 'Urban Point of Interest'}</p>
+            <div style="font-size: 10px; color: #334155; background: #f8fafc; padding: 5px 7px; border-radius: 6px; margin-bottom: 6px; border: 1px solid #e2e8f0;">
+              <div>Categories: <b style="color: ${pinColor};">${catsText}</b></div>
+              <div style="margin-top: 2px;">GPS: <span style="font-family: monospace;">${lat.toFixed(5)}, ${lon.toFixed(5)}</span></div>
+            </div>
+            <div style="font-size: 9px; color: #7c3aed; font-weight: 600; font-family: monospace;">
+              APIs: Places (${placesKey.slice(0, 6)}...) · Details (${placeDetailsKey.slice(0, 6)}...)
+            </div>
+          </div>
+        `;
+        marker.bindPopup(popupHtml).openPopup();
+      });
+
+      marker.bindTooltip(`<b>${name}</b><br/><span style="color: ${pinColor}; font-size: 10px;">${primaryCat}</span>`, { sticky: true });
+      placesLayersRef.current.push(marker);
+    });
+
+    setStatusMessage(`Loaded ${feats.length} Geoapify Places (${cat}) around downtown core. Click POI for Place Details.`);
+  };
+
+  const clearPlaces = () => {
+    placesLayersRef.current.forEach(l => l.remove());
+    placesLayersRef.current = [];
+    setShowPlaces(false);
+    setPlacesCount(0);
+    setActivePlaceDetail(null);
+    setStatusMessage('Geoapify Places POI layer cleared.');
+  };
+
+  // Geoapify IP Geolocation Detection Handler
+  const runIpGeolocation = async () => {
+    setIsDetectingIp(true);
+    setStatusMessage(`Detecting operator IP Geolocation (Key: ${ipGeoKey.slice(0, 8)}...)...`);
+    const data = await fetchGeoapifyIpGeo();
+    setIsDetectingIp(false);
+    if (data && (data.city || data.country || data.ip)) {
+      setIpGeoInfo(data);
+      const locName = `${(data.city && data.city.name) || 'City'}, ${(data.country && data.country.name) || 'Country'}`;
+      setStatusMessage(`Geoapify IP Geolocation resolved: ${locName} (IP: ${data.ip || 'Local'})`);
+    } else {
+      setStatusMessage('Geoapify IP Geolocation: response received.');
+    }
+  };
+
+  // Geoapify Map Matching Demo Handler
+  const runMapMatching = async () => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    setIsMapMatching(true);
+    setStatusMessage(`Executing Geoapify Map Matching (Key: ${mapMatchingKey.slice(0, 8)}...)...`);
+
+    // Simulated noisy probe vehicle GPS crumbs along the corridor between I1 (North) and I4 (East)
+    const rawGpsPoints = [
+      { lat: 37.7942, lon: -122.4018, timestamp: 1000 },
+      { lat: 37.7905, lon: -122.4013, timestamp: 1030 },
+      { lat: 37.7858, lon: -122.4014, timestamp: 1060 },
+      { lat: 37.7853, lon: -122.3970, timestamp: 1090 },
+      { lat: 37.7856, lon: -122.3932, timestamp: 1120 }
+    ];
+
+    const matchData = await fetchGeoapifyMapMatching(rawGpsPoints, 'drive');
+    setIsMapMatching(false);
+
+    // Clear prior matching layers
+    matchedLayersRef.current.forEach(l => l.remove());
+    matchedLayersRef.current = [];
+
+    if (!matchData || !matchData.features || !matchData.features[0]) {
+      setStatusMessage(`Map Matching request failed. Check API Key ${mapMatchingKey.slice(0, 8)}...`);
+      return;
+    }
+
+    const feat = matchData.features[0];
+    const props = feat.properties || {};
+    const distanceM = props.distance || 0;
+    const timeS = props.time || 0;
+
+    let snappedCoords = [];
+    if (feat.geometry.type === 'LineString') {
+      snappedCoords = feat.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    } else if (feat.geometry.type === 'MultiLineString') {
+      snappedCoords = feat.geometry.coordinates.flatMap(line => line.map(([lon, lat]) => [lat, lon]));
+    }
+
+    // 1. Draw raw noisy GPS breadcrumbs (Dotted Orange Line with circle points)
+    const rawCoords = rawGpsPoints.map(p => [p.lat, p.lon]);
+    const rawLine = L.polyline(rawCoords, {
+      color: '#f97316',
+      weight: 3,
+      dashArray: '4, 6',
+      opacity: 0.75
+    }).addTo(map);
+    rawLine.bindTooltip("<b>Raw Unmatched GPS Breadcrumbs</b> (Probe Vehicle Telemetry)", { sticky: true });
+    matchedLayersRef.current.push(rawLine);
+
+    rawGpsPoints.forEach((p, idx) => {
+      const dot = L.circleMarker([p.lat, p.lon], {
+        radius: 4.5,
+        fillColor: '#f97316',
+        color: '#ffffff',
+        weight: 1.5,
+        fillOpacity: 0.9
+      }).addTo(map);
+      dot.bindTooltip(`Raw GPS #${idx + 1}: ${p.lat.toFixed(4)}, ${p.lon.toFixed(4)}`, { sticky: true });
+      matchedLayersRef.current.push(dot);
+    });
+
+    // 2. Draw Snapped Road Polyline (Solid Royal Blue Line with Cyan glow)
+    const glowLine = L.polyline(snappedCoords, {
+      color: '#38bdf8',
+      weight: 8,
+      opacity: 0.45,
+      lineCap: 'round'
+    }).addTo(map);
+    matchedLayersRef.current.push(glowLine);
+
+    const snappedLine = L.polyline(snappedCoords, {
+      color: '#2563eb',
+      weight: 4,
+      opacity: 0.95,
+      lineCap: 'round'
+    }).addTo(map);
+    snappedLine.bindTooltip(`<b>Geoapify Map-Matched Road Geometry</b><br/>Distance: ${(distanceM / 1000).toFixed(2)} km | Time: ~${(timeS / 60).toFixed(1)} min`, { sticky: true });
+    matchedLayersRef.current.push(snappedLine);
+
+    map.fitBounds(snappedLine.getBounds(), { padding: [40, 40] });
+
+    setMapMatchedData({
+      distanceKm: (distanceM / 1000).toFixed(2),
+      timeMin: (timeS / 60).toFixed(1),
+      waypointsCount: rawGpsPoints.length,
+      snappedPointsCount: snappedCoords.length
+    });
+
+    setStatusMessage(`Geoapify Map Matching: ${rawGpsPoints.length} GPS breadcrumbs snapped to ${(distanceM / 1000).toFixed(2)} km road network (Key: ${mapMatchingKey.slice(0, 6)}...).`);
+  };
+
+  const clearMapMatching = () => {
+    matchedLayersRef.current.forEach(l => l.remove());
+    matchedLayersRef.current = [];
+    setMapMatchedData(null);
+    setStatusMessage('Map matching geometry cleared.');
   };
 
   return (
@@ -4596,6 +4962,13 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200 font-bold">
               8-Node Grid
             </span>
+            {ipGeoInfo && (
+              <div className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-mono">
+                <span>🌐</span>
+                <span className="font-semibold">{(ipGeoInfo.city && ipGeoInfo.city.name) || 'Local'}, {(ipGeoInfo.country && (ipGeoInfo.country.iso_code || ipGeoInfo.country.name)) || 'US'}</span>
+                <span className="text-slate-400">({ipGeoInfo.ip || 'Online'})</span>
+              </div>
+            )}
           </div>
           <p className={`text-xs mt-0.5 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
             Real-world geospatial coordinates integrated with live quantum-optimized signal phases & Geoapify API.
@@ -4772,6 +5145,60 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                     title="Clear Reachability Isochrone Zone"
                   >
                     ✕ Zone
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Places & POI Button */}
+              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
+                isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+              }`}>
+                <button
+                  onClick={() => togglePlaces('commercial,catering')}
+                  disabled={isLoadingPlaces}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition flex items-center space-x-1 ${
+                    showPlaces 
+                      ? 'bg-purple-600 text-white shadow-sm' 
+                      : isWhite ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' : 'bg-purple-950/50 text-purple-300 hover:bg-purple-900/60'
+                  }`}
+                  title="Scan urban POIs with Geoapify Places API (Key: c5191509...)"
+                >
+                  <span>🛍️ POIs {showPlaces ? `(${placesCount})` : ''}</span>
+                </button>
+                {showPlaces && (
+                  <button
+                    onClick={clearPlaces}
+                    className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
+                    title="Clear Places POI layer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Map Matching Button */}
+              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
+                isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+              }`}>
+                <button
+                  onClick={runMapMatching}
+                  disabled={isMapMatching}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition flex items-center space-x-1 ${
+                    mapMatchedData 
+                      ? 'bg-blue-600 text-white shadow-sm' 
+                      : isWhite ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-blue-950/50 text-blue-300 hover:bg-blue-900/60'
+                  }`}
+                  title="Snap vehicle GPS breadcrumbs to road network (Geoapify Map Matching API)"
+                >
+                  <span>🛣️ Map Match</span>
+                </button>
+                {mapMatchedData && (
+                  <button
+                    onClick={clearMapMatching}
+                    className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
+                    title="Clear Map Matching layer"
+                  >
+                    ✕
                   </button>
                 )}
               </div>
@@ -5090,12 +5517,179 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
             )}
           </div>
 
-          {/* API Keys & Status Card */}
+          {/* Geoapify Places & Place Details POI Card (Keys: c5191509... / 83ae1c36...) */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-base">🛍️</span>
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
+                  Geoapify Places & POIs
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-bold">
+                Key: {placesKey.slice(0, 6)}...
+              </span>
+            </div>
+
+            {/* Category Selector */}
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl">
+              {[
+                { id: 'commercial,catering', label: 'Dine/Shop', icon: '☕' },
+                { id: 'tourism', label: 'Tourism', icon: '🏨' },
+                { id: 'healthcare', label: 'Health', icon: '🏥' },
+                { id: 'parking', label: 'Parking', icon: '🅿️' }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => togglePlaces(cat.id)}
+                  className={`py-1 rounded-lg text-[10px] font-bold flex flex-col items-center transition ${
+                    placesCategory === cat.id && showPlaces
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : isWhite ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-xs">{cat.icon}</span>
+                  <span>{cat.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => togglePlaces(placesCategory)}
+                disabled={isLoadingPlaces}
+                className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+              >
+                {isLoadingPlaces ? <span>Loading...</span> : <span>🛍️ {showPlaces ? 'Refresh POIs' : 'Scan Places'}</span>}
+              </button>
+              <button
+                onClick={clearPlaces}
+                disabled={!showPlaces}
+                className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 hover:bg-rose-50 hover:text-rose-600 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1"
+              >
+                <span>✕ Clear POIs</span>
+              </button>
+            </div>
+
+            {/* Selected Place Details Card */}
+            {activePlaceDetail && (
+              <div className={`p-3 rounded-xl border space-y-2 text-xs ${
+                isWhite ? 'bg-purple-50/70 border-purple-200' : 'bg-purple-950/30 border-purple-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-purple-700 dark:text-purple-300">
+                    Place Details ({activePlaceDetail.name || 'Venue'})
+                  </span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-bold">
+                    Key: {placeDetailsKey.slice(0, 5)}...
+                  </span>
+                </div>
+                <div className="text-[11px] font-semibold text-slate-800 dark:text-slate-200">
+                  {activePlaceDetail.formatted || activePlaceDetail.address_line1 || 'Address details'}
+                </div>
+                <div className={`text-[10px] p-2 rounded-lg font-mono ${isWhite ? 'bg-white border border-purple-100 text-slate-700' : 'bg-slate-900 border border-purple-900 text-slate-300'}`}>
+                  <div>Categories: <b>{(activePlaceDetail.categories || []).slice(0, 4).join(', ')}</b></div>
+                  {activePlaceDetail.website && <div className="truncate mt-0.5">Web: {activePlaceDetail.website}</div>}
+                  {activePlaceDetail.opening_hours && <div className="mt-0.5">Hours: {activePlaceDetail.opening_hours}</div>}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Geoapify Map Matching & IP Geolocation Card (Keys: 8fca0f76... / 0ae0a18a...) */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-base">🛣️</span>
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
+                  Map Matching & IP Geo
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-bold">
+                Keys Active
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={runMapMatching}
+                disabled={isMapMatching}
+                className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+                title="Execute Map Matching on probe GPS breadcrumbs"
+              >
+                {isMapMatching ? <span>Snapping...</span> : <span>🛣️ Match Route</span>}
+              </button>
+              <button
+                onClick={runIpGeolocation}
+                disabled={isDetectingIp}
+                className="w-full py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+                title="Detect operator IP Geolocation"
+              >
+                {isDetectingIp ? <span>Detecting...</span> : <span>🌐 Detect IP</span>}
+              </button>
+            </div>
+
+            {/* Map Matched Telemetry */}
+            {mapMatchedData && (
+              <div className={`p-3 rounded-xl border space-y-2 text-xs ${
+                isWhite ? 'bg-blue-50/70 border-blue-200' : 'bg-blue-950/30 border-blue-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-blue-700 dark:text-blue-300">
+                    GPS Breadcrumbs Snapped
+                  </span>
+                  <button onClick={clearMapMatching} className="text-[10px] text-rose-500 font-semibold hover:underline">
+                    Clear
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-blue-100' : 'bg-slate-900 border-blue-900'}`}>
+                    <span className="text-slate-500 block">Matched Dist:</span>
+                    <strong className="text-blue-600 text-xs">{mapMatchedData.distanceKm} km</strong>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-blue-100' : 'bg-slate-900 border-blue-900'}`}>
+                    <span className="text-slate-500 block">Drive Time:</span>
+                    <strong className="text-blue-600 text-xs">{mapMatchedData.timeMin} min</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* IP Geolocation Telemetry */}
+            {ipGeoInfo && (
+              <div className={`p-3 rounded-xl border space-y-1.5 text-xs ${
+                isWhite ? 'bg-indigo-50/70 border-indigo-200 text-slate-800' : 'bg-indigo-950/30 border-indigo-800 text-slate-200'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-700 dark:text-indigo-300">
+                    🌐 Operator IP Location
+                  </span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold">
+                    Key: {ipGeoKey.slice(0, 5)}...
+                  </span>
+                </div>
+                <div className="text-[11px] font-semibold">
+                  {(ipGeoInfo.city && ipGeoInfo.city.name) || 'City'}, {(ipGeoInfo.country && ipGeoInfo.country.name) || 'United States'}
+                </div>
+                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                  IP: {ipGeoInfo.ip || '127.0.0.1'} · ISP: {(ipGeoInfo.isp && ipGeoInfo.isp.name) || (ipGeoInfo.autonomous_system_organization) || 'Broadband'}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* API Keys & Status Card (All 10 Active Geoapify APIs) */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
             isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
           }`}>
             <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
-              Geoapify GIS Services (6 Active APIs)
+              Geoapify GIS Services (10 Active APIs)
             </h3>
             <div className="space-y-2 text-xs">
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
@@ -5120,6 +5714,42 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                 isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
               }`}>
                 <div>
+                  <div className="font-semibold">Places API (POI Search)</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {placesKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
+                  <div className="font-semibold">Place Details API</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {placeDetailsKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
+                  <div className="font-semibold">IP Geolocation API</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {ipGeoKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
+                  <div className="font-semibold">Map Matching API</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {mapMatchingKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
                   <div className="font-semibold">Raster Map Tiles</div>
                   <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {apiKey.slice(0, 8)}...</div>
                 </div>
@@ -5132,7 +5762,7 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                   <div className="font-semibold">Autocomplete API</div>
                   <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {autocompleteKey.slice(0, 8)}...</div>
                 </div>
-                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">ACTIVE</span>
               </div>
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
@@ -5141,7 +5771,7 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                   <div className="font-semibold">Reverse Geocoding</div>
                   <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {reverseKey.slice(0, 8)}...</div>
                 </div>
-                <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+                <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">ACTIVE</span>
               </div>
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'

@@ -9,7 +9,11 @@ const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || 'rc_21e8c10fa68cd
 const DEFAULT_FEATHERLESS_MODEL = 'Qwen/Qwen2.5-7B-Instruct';
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
 const GEOAPIFY_ROUTING_KEY = process.env.GEOAPIFY_ROUTING_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
-const GEOAPIFY_ISOLINE_KEY = process.env.GEOAPIFY_ISOLINE_KEY || '5557e9758dbf492abbc58c3de058f972';
+const GEOAPIFY_ISOLINE_KEY = process.env.GEOAPIFY_ISOLINE_KEY || '2378af2a2bf64130bef3abbcf70865d5';
+const GEOAPIFY_PLACES_KEY = process.env.GEOAPIFY_PLACES_KEY || 'c5191509836e498095c57bf059ac791f';
+const GEOAPIFY_PLACE_DETAILS_KEY = process.env.GEOAPIFY_PLACE_DETAILS_KEY || '83ae1c36bd23478598f4501c4d9f114d';
+const GEOAPIFY_IP_GEO_KEY = process.env.GEOAPIFY_IP_GEO_KEY || '0ae0a18aa62240379014c7b7d7e08c28';
+const GEOAPIFY_MAP_MATCHING_KEY = process.env.GEOAPIFY_MAP_MATCHING_KEY || '8fca0f76ccf44e46b3cd9a3cac47e6ff';
 const GEOAPIFY_GEOCODING_KEY = process.env.GEOAPIFY_GEOCODING_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
 const GEOAPIFY_REVERSE_KEY = process.env.GEOAPIFY_REVERSE_KEY || 'b9a95414ae8a4dd3b9d2f97ae2fc0546';
 const GEOAPIFY_AUTOCOMPLETE_KEY = process.env.GEOAPIFY_AUTOCOMPLETE_KEY || '509e607576bb4c1d94ee7f92dce287da';
@@ -72,6 +76,14 @@ const server = http.createServer((req, res) => {
       routingKeyMasked: GEOAPIFY_ROUTING_KEY.slice(0, 7) + '...' + GEOAPIFY_ROUTING_KEY.slice(-6),
       isolineKey: GEOAPIFY_ISOLINE_KEY,
       isolineKeyMasked: GEOAPIFY_ISOLINE_KEY.slice(0, 7) + '...' + GEOAPIFY_ISOLINE_KEY.slice(-6),
+      placesKey: GEOAPIFY_PLACES_KEY,
+      placesKeyMasked: GEOAPIFY_PLACES_KEY.slice(0, 7) + '...' + GEOAPIFY_PLACES_KEY.slice(-6),
+      placeDetailsKey: GEOAPIFY_PLACE_DETAILS_KEY,
+      placeDetailsKeyMasked: GEOAPIFY_PLACE_DETAILS_KEY.slice(0, 7) + '...' + GEOAPIFY_PLACE_DETAILS_KEY.slice(-6),
+      ipGeoKey: GEOAPIFY_IP_GEO_KEY,
+      ipGeoKeyMasked: GEOAPIFY_IP_GEO_KEY.slice(0, 7) + '...' + GEOAPIFY_IP_GEO_KEY.slice(-6),
+      mapMatchingKey: GEOAPIFY_MAP_MATCHING_KEY,
+      mapMatchingKeyMasked: GEOAPIFY_MAP_MATCHING_KEY.slice(0, 7) + '...' + GEOAPIFY_MAP_MATCHING_KEY.slice(-6),
       geocodingKey: GEOAPIFY_GEOCODING_KEY,
       reverseKey: GEOAPIFY_REVERSE_KEY,
       autocompleteKey: GEOAPIFY_AUTOCOMPLETE_KEY,
@@ -82,6 +94,10 @@ const server = http.createServer((req, res) => {
       tileUrlTemplate: `https://maps.geoapify.com/v1/tile/{style}/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`,
       routingUrlTemplate: `https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode={mode}&apiKey=${GEOAPIFY_ROUTING_KEY}`,
       isolineUrlTemplate: `https://api.geoapify.com/v1/isoline?lat={lat}&lon={lon}&type={type}&mode={mode}&range={range}&apiKey=${GEOAPIFY_ISOLINE_KEY}`,
+      placesUrlTemplate: `https://api.geoapify.com/v2/places?categories={categories}&filter={filter}&limit={limit}&apiKey=${GEOAPIFY_PLACES_KEY}`,
+      placeDetailsUrlTemplate: `https://api.geoapify.com/v2/place-details?lat={lat}&lon={lon}&apiKey=${GEOAPIFY_PLACE_DETAILS_KEY}`,
+      ipGeoUrlTemplate: `https://api.geoapify.com/v1/ipinfo?apiKey=${GEOAPIFY_IP_GEO_KEY}`,
+      mapMatchingUrlTemplate: `https://api.geoapify.com/v1/mapmatching?apiKey=${GEOAPIFY_MAP_MATCHING_KEY}`,
       center: [37.7855, -122.4015],
       zoom: 14
     }));
@@ -115,7 +131,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API Route: Geoapify Reachability & Isoline API Proxy (Key: 5557e9758dbf492abbc58c3de058f972)
+  // API Route: Geoapify Reachability & Isoline API Proxy (Key: 2378af2a2bf64130bef3abbcf70865d5)
   if (reqUrl === '/api/isoline' && req.method === 'GET') {
     const urlObj = new URL(req.url, `http://${req.headers.host}`);
     const lat = urlObj.searchParams.get('lat') || '37.7855';
@@ -206,6 +222,183 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ error: err.message }));
     });
     return;
+  }
+
+  // API Route: Geoapify Places API Proxy (Key: c5191509836e498095c57bf059ac791f)
+  if (reqUrl === '/api/places' && req.method === 'GET') {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const categories = urlObj.searchParams.get('categories') || 'commercial,catering';
+    const filter = urlObj.searchParams.get('filter') || 'circle:-122.4015,37.7855,1000';
+    const limit = urlObj.searchParams.get('limit') || '10';
+    const bias = urlObj.searchParams.get('bias');
+
+    let pUrl = `https://api.geoapify.com/v2/places?categories=${encodeURIComponent(categories)}&filter=${encodeURIComponent(filter)}&limit=${limit}&apiKey=${GEOAPIFY_PLACES_KEY}`;
+    if (bias) {
+      pUrl += `&bias=${encodeURIComponent(bias)}`;
+    }
+
+    https.get(pUrl, (gRes) => {
+      let b = '';
+      gRes.on('data', c => b += c);
+      gRes.on('end', () => {
+        res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+        res.end(b);
+      });
+    }).on('error', (err) => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return;
+  }
+
+  // API Route: Geoapify Place Details API Proxy (Key: 83ae1c36bd23478598f4501c4d9f114d)
+  if (reqUrl === '/api/place-details' && req.method === 'GET') {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const id = urlObj.searchParams.get('id');
+    const lat = urlObj.searchParams.get('lat') || '37.7855';
+    const lon = urlObj.searchParams.get('lon') || '-122.4015';
+    const features = urlObj.searchParams.get('features');
+
+    let pdUrl = '';
+    if (id) {
+      pdUrl = `https://api.geoapify.com/v2/place-details?id=${encodeURIComponent(id)}&apiKey=${GEOAPIFY_PLACE_DETAILS_KEY}`;
+    } else {
+      pdUrl = `https://api.geoapify.com/v2/place-details?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&apiKey=${GEOAPIFY_PLACE_DETAILS_KEY}`;
+    }
+    if (features) {
+      pdUrl += `&features=${encodeURIComponent(features)}`;
+    }
+
+    https.get(pdUrl, (gRes) => {
+      let b = '';
+      gRes.on('data', c => b += c);
+      gRes.on('end', () => {
+        res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+        res.end(b);
+      });
+    }).on('error', (err) => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return;
+  }
+
+  // API Route: Geoapify IP Geolocation API Proxy (Key: 0ae0a18aa62240379014c7b7d7e08c28)
+  if (reqUrl === '/api/ipinfo' && req.method === 'GET') {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const ip = urlObj.searchParams.get('ip');
+
+    let ipUrl = `https://api.geoapify.com/v1/ipinfo?apiKey=${GEOAPIFY_IP_GEO_KEY}`;
+    if (ip) {
+      ipUrl += `&ip=${encodeURIComponent(ip)}`;
+    }
+
+    https.get(ipUrl, (gRes) => {
+      let b = '';
+      gRes.on('data', c => b += c);
+      gRes.on('end', () => {
+        res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+        res.end(b);
+      });
+    }).on('error', (err) => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return;
+  }
+
+  // API Route: Geoapify Map Matching API Proxy (Key: 8fca0f76ccf44e46b3cd9a3cac47e6ff)
+  if (reqUrl === '/api/mapmatching') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk;
+        if (body.length > 1e6) req.destroy();
+      });
+      req.on('end', () => {
+        const mmUrl = new URL(`https://api.geoapify.com/v1/mapmatching?apiKey=${GEOAPIFY_MAP_MATCHING_KEY}`);
+        const postData = body || JSON.stringify({
+          mode: 'drive',
+          waypoints: [
+            { lat: 37.7855, lon: -122.4015, timestamp: 1000 },
+            { lat: 37.7865, lon: -122.4010, timestamp: 1030 }
+          ]
+        });
+
+        const reqOpt = {
+          hostname: mmUrl.hostname,
+          path: mmUrl.pathname + mmUrl.search,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const mmReq = https.request(reqOpt, (gRes) => {
+          let b = '';
+          gRes.on('data', c => b += c);
+          gRes.on('end', () => {
+            res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+            res.end(b);
+          });
+        });
+        mmReq.on('error', (err) => {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+        mmReq.write(postData);
+        mmReq.end();
+      });
+      return;
+    } else if (req.method === 'GET') {
+      const urlObj = new URL(req.url, `http://${req.headers.host}`);
+      const mode = urlObj.searchParams.get('mode') || 'drive';
+      const defaultWaypoints = [
+        { lat: 37.7855, lon: -122.4015, timestamp: 1000 },
+        { lat: 37.7865, lon: -122.4010, timestamp: 1030 }
+      ];
+      let waypoints = defaultWaypoints;
+      const wpParam = urlObj.searchParams.get('waypoints');
+      if (wpParam) {
+        try {
+          waypoints = JSON.parse(wpParam);
+        } catch (e) {
+          waypoints = wpParam.split('|').map((pair, idx) => {
+            const [lat, lon] = pair.split(',').map(Number);
+            return { lat, lon, timestamp: 1000 + idx * 30 };
+          });
+        }
+      }
+
+      const postData = JSON.stringify({ mode, waypoints });
+      const mmUrl = new URL(`https://api.geoapify.com/v1/mapmatching?apiKey=${GEOAPIFY_MAP_MATCHING_KEY}`);
+      const reqOpt = {
+        hostname: mmUrl.hostname,
+        path: mmUrl.pathname + mmUrl.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const mmReq = https.request(reqOpt, (gRes) => {
+        let b = '';
+        gRes.on('data', c => b += c);
+        gRes.on('end', () => {
+          res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+          res.end(b);
+        });
+      });
+      mmReq.on('error', (err) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+      mmReq.write(postData);
+      mmReq.end();
+      return;
+    }
   }
 
   // API Route: Featherless AI Chat Completions Proxy
