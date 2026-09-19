@@ -4,7 +4,30 @@ LIMO — Quantum-Enhanced Adaptive Urban Traffic Intelligence
   <img src="./assets/limo-animated-hero.svg" alt="LIMO animated smart city" width="100%" />
 </p>
 
-<p align="center">
+<p align="center"><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520" role="img" aria-labelledby="title desc">
+<title id="title">LIMO animated smart city</title>
+<desc id="desc">Animated futuristic city with moving traffic, pulsing signals, quantum data paths, and a LIMO landmark.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#020611"/><stop offset=".55" stop-color="#071429"/><stop offset="1" stop-color="#0b2035"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#76d6ff" stop-opacity=".55"/><stop offset=".5" stop-color="#205b9f" stop-opacity=".32"/><stop offset="1" stop-color="#0a1730" stop-opacity=".82"/></linearGradient>
+<linearGradient id="road" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#071019"/><stop offset=".5" stop-color="#17283b"/><stop offset="1" stop-color="#071019"/></linearGradient>
+<filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+<pattern id="windows" width="22" height="26" patternUnits="userSpaceOnUse"><rect x="5" y="6" width="6" height="8" rx="1" fill="#8cdcff" opacity=".55"/><rect x="14" y="6" width="4" height="8" rx="1" fill="#c5efff" opacity=".25"/><rect x="5" y="18" width="6" height="5" rx="1" fill="#68cfff" opacity=".18"/></pattern>
+</defs>
+<rect width="1400" height="520" fill="url(#bg)"/>
+<ellipse cx="700" cy="240" rx="560" ry="170" fill="#1ab4ff" opacity=".08" filter="url(#soft)"><animate attributeName="opacity" values=".05;.12;.05" dur="5s" repeatCount="indefinite"/></ellipse>
+<g fill="#8cdcff"><circle cx="130" cy="95" r="1.5"><animate attributeName="opacity" values=".2;1;.2" dur="2.5s" repeatCount="indefinite"/></circle><circle cx="360" cy="70" r="1.2"><animate attributeName="opacity" values=".1;.8;.1" dur="3.2s" repeatCount="indefinite"/></circle><circle cx="915" cy="88" r="1.7"><animate attributeName="opacity" values=".2;1;.2" dur="2.2s" repeatCount="indefinite"/></circle><circle cx="1200" cy="110" r="1.2"><animate attributeName="opacity" values=".15;.75;.15" dur="2.8s" repeatCount="indefinite"/></circle></g>
+<g opacity=".62"><rect x="0" y="258" width="100" height="120" fill="#0d1e32"/><rect x="92" y="220" width="84" height="158" fill="#10253b"/><rect x="168" y="244" width="126" height="134" fill="#0c1d30"/><rect x="280" y="195" width="112" height="183" fill="#0f243a"/><rect x="395" y="235" width="82" height="143" fill="#0b2034"/><rect x="1000" y="230" width="110" height="148" fill="#0f2236"/><rect x="1095" y="196" width="88" height="182" fill="#0d2034"/><rect x="1176" y="248" width="105" height="130" fill="#11253b"/><rect x="1270" y="215" width="130" height="163" fill="#0b1d31"/></g>
+<g transform="translate(700 70)"><path d="M-112 308 L-75 42 L75 42 L112 308 Z" fill="url(#glass)" stroke="#76d9ff" stroke-width="2"/><path d="M-75 42 L0 15 L75 42" fill="#0c2f51" stroke="#8fe3ff" stroke-width="2"/><rect x="-58" y="76" width="116" height="212" fill="url(#windows)" opacity=".9"/><path d="M-72 130 L-155 168 L-172 153 L-83 106" fill="#183b5f" stroke="#77d8ff" stroke-width="2"/><path d="M72 130 L155 168 L172 153 L83 106" fill="#183b5f" stroke="#77d8ff" stroke-width="2"/><rect x="-78" y="307" width="156" height="8" rx="4" fill="#8de5ff" opacity=".8"/><circle cx="0" cy="4" r="7" fill="#8de5ff" filter="url(#glow)"><animate attributeName="r" values="5;10;5" dur="2.2s" repeatCount="indefinite"/></circle><text x="0" y="190" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="800" fill="#eaf8ff" letter-spacing="5">LIMO</text><text x="0" y="214" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="9" fill="#9fdfff" letter-spacing="2">DIGITAL TWIN</text></g>
+<rect y="376" width="1400" height="144" fill="url(#road)"/><path d="M0 448 H1400" stroke="#7fa9c5" stroke-opacity=".35" stroke-width="3" stroke-dasharray="18 16"/><rect x="592" y="366" width="216" height="154" fill="#0a1624"/><path d="M700 366 V520" stroke="#7fa9c5" stroke-opacity=".28" stroke-width="3" stroke-dasharray="18 16"/>
+<g><rect x="508" y="330" width="10" height="58" rx="4" fill="#1d3348"/><circle cx="513" cy="342" r="6" fill="#ff4f67"><animate attributeName="opacity" values="1;.35;1" dur="1.8s" repeatCount="indefinite"/></circle><circle cx="513" cy="359" r="6" fill="#f6c85f" opacity=".35"/><circle cx="513" cy="376" r="6" fill="#45ff9a" opacity=".35"/><rect x="878" y="330" width="10" height="58" rx="4" fill="#1d3348"/><circle cx="883" cy="342" r="6" fill="#45ff9a"><animate attributeName="opacity" values=".35;1;.35" dur="1.8s" repeatCount="indefinite"/></circle><circle cx="883" cy="359" r="6" fill="#f6c85f" opacity=".35"/><circle cx="883" cy="376" r="6" fill="#ff4f67" opacity=".35"/></g>
+<g><g><rect x="90" y="421" width="42" height="18" rx="6" fill="#d8e8f5"/><rect x="104" y="425" width="12" height="5" rx="1" fill="#0d1d2f"/><animateTransform attributeName="transform" type="translate" from="0 0" to="1250 0" dur="8s" repeatCount="indefinite"/></g><g><rect x="380" y="466" width="34" height="15" rx="5" fill="#6bc9ff"/><rect x="389" y="469" width="10" height="4" rx="1" fill="#0d1d2f"/><animateTransform attributeName="transform" type="translate" from="0 0" to="900 0" dur="6.5s" begin="1.2s" repeatCount="indefinite"/></g><g><rect x="1110" y="405" width="48" height="19" rx="7" fill="#ffd36b"/><circle cx="1120" cy="426" r="4" fill="#111"/><circle cx="1148" cy="426" r="4" fill="#111"/><animateTransform attributeName="transform" type="translate" from="0 0" to="-1040 0" dur="7.5s" begin=".6s" repeatCount="indefinite"/></g><g><circle cx="860" cy="480" r="6" fill="#f9d66f"/><circle cx="882" cy="480" r="6" fill="#f9d66f"/><rect x="857" y="470" width="28" height="16" rx="5" fill="#ff6e86"/><animateTransform attributeName="transform" type="translate" from="0 0" to="-660 0" dur="5.8s" begin=".4s" repeatCount="indefinite"/></g></g>
+<g stroke="#6ed5ff" stroke-width="2" fill="none" opacity=".8"><path d="M100 120 C320 40, 430 80, 560 140 S840 230, 1030 115 S1210 80, 1300 140"><animate attributeName="stroke-dashoffset" from="0" to="-500" dur="7s" repeatCount="indefinite"/></path></g><g fill="#9ce8ff" filter="url(#glow)"><circle cx="100" cy="120" r="4"/><circle cx="560" cy="140" r="4"/><circle cx="1030" cy="115" r="4"/><circle cx="1300" cy="140" r="4"/></g>
+<text x="80" y="88" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="900" fill="#f3fbff" letter-spacing="10">LIMO<animate attributeName="opacity" values=".7;1;.7" dur="3s" repeatCount="indefinite"/></text><text x="82" y="116" font-family="Inter,Arial,sans-serif" font-size="12" fill="#8ecfff" letter-spacing="3">QUANTUM-ENHANCED ADAPTIVE URBAN TRAFFIC INTELLIGENCE</text>
+<g transform="translate(1080 64)"><rect width="215" height="38" rx="19" fill="#071421" stroke="#285a77"/><circle cx="24" cy="19" r="6" fill="#45ff9a"><animate attributeName="opacity" values=".3;1;.3" dur="1.5s" repeatCount="indefinite"/></circle><text x="40" y="24" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" fill="#a8dfff" letter-spacing="2">DIGITAL TWIN ONLINE</text></g>
+</svg>
+
   <strong>🌍 3D Digital Twin · ⚛️ QUBO/QAOA · 🚦 Adaptive Signals · 🚑 Emergency Green Corridor · 📹 Live CCTV Simulation</strong>
 </p>
 
@@ -34,7 +57,8 @@ The package metadata describes the project as an interactive 3D prototype and li
 
 This README is designed as an animated presentation layer:
 
-animated city skyline
+animated city skyline<img width="1400" height="520" alt="download" src="https://github.com/user-attachments/assets/093b4a21-d32e-4831-addb-e9e6317b38c3" />
+
 
 moving traffic
 
