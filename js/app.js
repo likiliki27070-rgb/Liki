@@ -3710,10 +3710,10 @@ async function fetchAutocomplete(query, bias = 'proximity:-122.4015,37.7855') {
   }
 }
 
-// Turn-by-Turn Routing helper with fallback (Key: b5a852f6b97e420ab0850cc32c31c9d9)
+// Turn-by-Turn Routing helper with fallback (Key: f45cf1c920ff48c7aee949dfc6053cef)
 async function fetchGeoapifyRoute(waypoints, mode = 'drive', avoid = '') {
   if (!waypoints) return null;
-  const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
+  const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'f45cf1c920ff48c7aee949dfc6053cef';
   try {
     let url = `/api/routing?waypoints=${encodeURIComponent(waypoints)}&mode=${mode}&details=instruction_details`;
     if (avoid) url += `&avoid=${encodeURIComponent(avoid)}`;
@@ -3730,6 +3730,35 @@ async function fetchGeoapifyRoute(waypoints, mode = 'drive', avoid = '') {
       return fbData;
     } catch (e2) {
       console.warn("Routing request failed:", e2);
+      return null;
+    }
+  }
+}
+
+// Geoapify Route Planner API helper with fallback (Key: f45cf1c920ff48c7aee949dfc6053cef)
+async function fetchGeoapifyRoutePlanner(agents, shipments, mode = 'drive') {
+  const routePlannerKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routePlannerKey) || 'f45cf1c920ff48c7aee949dfc6053cef';
+  const postData = { mode, agents, shipments };
+  try {
+    const res = await fetch('/api/route-planner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(postData)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      const fb = await fetch(`https://api.geoapify.com/v1/routeplanner?apiKey=${routePlannerKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("Route Planner request failed:", e2);
       return null;
     }
   }
@@ -4092,6 +4121,7 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const isolineLayersRef = useRef([]);
   const placesLayersRef = useRef([]);
   const matchedLayersRef = useRef([]);
+  const routePlannerLayersRef = useRef([]);
 
   // Turn-by-Turn Routing States
   const [activeRoute, setActiveRoute] = useState(null);
@@ -4100,6 +4130,10 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const [routeTo, setRouteTo] = useState('I6');
   const [isRouting, setIsRouting] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
+
+  // Multi-Stop Route Planner States (Key: f45cf1c920ff48c7aee949dfc6053cef)
+  const [isPlanningRoute, setIsPlanningRoute] = useState(false);
+  const [activeRoutePlan, setActiveRoutePlan] = useState(null);
 
   // Reachability & Isoline States (Key: 2378af2a2bf64130bef3abbcf70865d5)
   const [activeIsoline, setActiveIsoline] = useState(null);
@@ -4124,7 +4158,8 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const [mapMatchedData, setMapMatchedData] = useState(null);
 
   const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
-  const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
+  const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'f45cf1c920ff48c7aee949dfc6053cef';
+  const routePlannerKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routePlannerKey) || 'f45cf1c920ff48c7aee949dfc6053cef';
   const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '2378af2a2bf64130bef3abbcf70865d5';
   const placesKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.placesKey) || 'c5191509836e498095c57bf059ac791f';
   const placeDetailsKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.placeDetailsKey) || '83ae1c36bd23478598f4501c4d9f114d';
@@ -4230,6 +4265,8 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
         placesLayersRef.current = [];
         matchedLayersRef.current.forEach(l => l.remove());
         matchedLayersRef.current = [];
+        routePlannerLayersRef.current.forEach(l => l.remove());
+        routePlannerLayersRef.current = [];
         mapRef.current.remove();
         mapRef.current = null;
         markersRef.current = {};
@@ -4947,6 +4984,126 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
     setStatusMessage('Map matching geometry cleared.');
   };
 
+  // Geoapify Route Planner Handler (Multi-Stop Fleet Corridor Optimizer)
+  const runRoutePlanner = async () => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    setIsPlanningRoute(true);
+    setStatusMessage(`Running Geoapify Route Planner fleet optimization (Key: ${routePlannerKey.slice(0, 8)}...)...`);
+
+    // Multi-stop agent dispatch between urban intersections:
+    // Agent starts at I3 Hub, picks up at I1, delivers to I4 & I6
+    const agents = [
+      {
+        start_location: [-122.4015, 37.7855], // I3 Hub
+        time_windows: [[0, 7200]]
+      }
+    ];
+
+    const shipments = [
+      {
+        id: 'dispatch_I1_I4',
+        pickup: { location: [-122.4015, 37.7940], duration: 90 }, // Node I1
+        delivery: { location: [-122.3950, 37.7855], duration: 90 } // Node I4
+      },
+      {
+        id: 'dispatch_I2_I6',
+        pickup: { location: [-122.3950, 37.7940], duration: 90 }, // Node I2
+        delivery: { location: [-122.3950, 37.7770], duration: 90 } // Node I6
+      }
+    ];
+
+    const planData = await fetchGeoapifyRoutePlanner(agents, shipments, 'drive');
+    setIsPlanningRoute(false);
+
+    // Clear prior plan layers
+    routePlannerLayersRef.current.forEach(l => l.remove());
+    routePlannerLayersRef.current = [];
+
+    if (!planData || !planData.features || planData.features.length === 0) {
+      setStatusMessage(`Route Planner failed. Check key ${routePlannerKey.slice(0, 8)}...`);
+      return;
+    }
+
+    const feature = planData.features[0];
+    const props = feature.properties || {};
+    const distanceM = props.distance || 0;
+    const timeS = props.time || 0;
+
+    let latlngs = [];
+    if (feature.geometry.type === 'LineString') {
+      latlngs = feature.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    } else if (feature.geometry.type === 'MultiLineString') {
+      latlngs = feature.geometry.coordinates.flatMap(line => line.map(([lon, lat]) => [lat, lon]));
+    }
+
+    // Glow line
+    const planGlow = L.polyline(latlngs, {
+      color: '#c084fc',
+      weight: 9,
+      opacity: 0.45,
+      lineCap: 'round'
+    }).addTo(map);
+    routePlannerLayersRef.current.push(planGlow);
+
+    // Solid line
+    const planLine = L.polyline(latlngs, {
+      color: '#9333ea',
+      weight: 4.5,
+      opacity: 0.95,
+      lineCap: 'round'
+    }).addTo(map);
+    planLine.bindTooltip(`<b>Geoapify Route Planner Itinerary</b><br/>Total Dist: ${(distanceM / 1000).toFixed(2)} km | Est. Time: ~${(timeS / 60).toFixed(1)} min`, { sticky: true });
+    routePlannerLayersRef.current.push(planLine);
+
+    // Add Stop Markers
+    const stops = [
+      { id: 'Agent Depot', lat: 37.7855, lon: -122.4015, color: '#3b82f6', label: 'Depot (I3)' },
+      { id: 'Pickup 1', lat: 37.7940, lon: -122.4015, color: '#10b981', label: 'Pickup (I1)' },
+      { id: 'Drop 1', lat: 37.7855, lon: -122.3950, color: '#f59e0b', label: 'Delivery (I4)' },
+      { id: 'Pickup 2', lat: 37.7940, lon: -122.3950, color: '#06b6d4', label: 'Pickup (I2)' },
+      { id: 'Final Drop', lat: 37.7770, lon: -122.3950, color: '#ef4444', label: 'Delivery (I6)' }
+    ];
+
+    stops.forEach((st, idx) => {
+      const pinIcon = L.divIcon({
+        className: 'route-plan-pin',
+        html: `
+          <div style="position: relative; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 22px; height: 22px; border-radius: 9999px; background: ${st.color}; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: #ffffff; font-family: monospace; font-size: 10px; font-weight: 800;">
+              ${idx + 1}
+            </div>
+          </div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      const mk = L.marker([st.lat, st.lon], { icon: pinIcon }).addTo(map);
+      mk.bindTooltip(`<b>Stop ${idx + 1}: ${st.id}</b><br/>${st.label}`, { sticky: true });
+      routePlannerLayersRef.current.push(mk);
+    });
+
+    map.fitBounds(planLine.getBounds(), { padding: [40, 40] });
+
+    setActiveRoutePlan({
+      distanceKm: (distanceM / 1000).toFixed(2),
+      durationMin: (timeS / 60).toFixed(1),
+      stopsCount: stops.length,
+      mode: props.mode || 'drive'
+    });
+
+    setStatusMessage(`Geoapify Route Planner: optimized ${stops.length}-stage fleet corridor (${(distanceM / 1000).toFixed(2)} km, ~${(timeS / 60).toFixed(1)} min). Key: ${routePlannerKey.slice(0, 6)}...`);
+  };
+
+  const clearRoutePlanner = () => {
+    routePlannerLayersRef.current.forEach(l => l.remove());
+    routePlannerLayersRef.current = [];
+    setActiveRoutePlan(null);
+    setStatusMessage('Route planner itinerary cleared.');
+  };
+
   return (
     <div className="h-full flex flex-col space-y-4">
       {/* Top Header & GIS Command Bar */}
@@ -5197,6 +5354,33 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                     onClick={clearMapMatching}
                     className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
                     title="Clear Map Matching layer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Route Planner Button */}
+              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
+                isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+              }`}>
+                <button
+                  onClick={runRoutePlanner}
+                  disabled={isPlanningRoute}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-lg transition flex items-center space-x-1 ${
+                    activeRoutePlan 
+                      ? 'bg-purple-700 text-white shadow-sm' 
+                      : isWhite ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' : 'bg-purple-950/50 text-purple-300 hover:bg-purple-900/60'
+                  }`}
+                  title="Optimize multi-stop corridor itinerary with Geoapify Route Planner API (Key: f45cf1c9...)"
+                >
+                  <span>📋 Route Plan</span>
+                </button>
+                {activeRoutePlan && (
+                  <button
+                    onClick={clearRoutePlanner}
+                    className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
+                    title="Clear Route Planner layer"
                   >
                     ✕
                   </button>
@@ -5684,14 +5868,92 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
             )}
           </div>
 
-          {/* API Keys & Status Card (All 10 Active Geoapify APIs) */}
+          {/* Geoapify Route Planner Card (Key: f45cf1c920ff48c7aee949dfc6053cef) */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-base">📋</span>
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
+                  Route Planner Engine
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 font-bold">
+                {routePlannerKey.slice(0, 8)}...
+              </span>
+            </div>
+
+            <p className={`text-[11px] leading-relaxed ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>
+              Multi-stop vehicle routing optimizer (VRP) calculating optimal shipment dispatches and transit schedules across intersection nodes.
+            </p>
+
+            <button
+              onClick={runRoutePlanner}
+              disabled={isPlanningRoute}
+              className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1.5"
+              title="Solve multi-stop vehicle routing plan with Geoapify Route Planner API"
+            >
+              {isPlanningRoute ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <span>Solving Itinerary...</span>
+                </>
+              ) : (
+                <span>🚀 Solve Multi-Stop Itinerary</span>
+              )}
+            </button>
+
+            {/* Route Planner Telemetry */}
+            {activeRoutePlan && (
+              <div className={`p-3 rounded-xl border space-y-2 text-xs ${
+                isWhite ? 'bg-purple-50/70 border-purple-200' : 'bg-purple-950/30 border-purple-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-purple-700 dark:text-purple-300">
+                    Plan: {activeRoutePlan.stopsCount} Waypoints ({activeRoutePlan.mode.toUpperCase()})
+                  </span>
+                  <button onClick={clearRoutePlanner} className="text-[10px] text-rose-500 font-semibold hover:underline">
+                    Clear
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-purple-100' : 'bg-slate-900 border-purple-900'}`}>
+                    <span className="text-slate-500 block">Corridor Dist:</span>
+                    <strong className="text-purple-600 text-xs">{activeRoutePlan.distanceKm} km</strong>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-purple-100' : 'bg-slate-900 border-purple-900'}`}>
+                    <span className="text-slate-500 block">Est. Duration:</span>
+                    <strong className="text-purple-600 text-xs">{activeRoutePlan.durationMin} min</strong>
+                  </div>
+                </div>
+                <div className={`text-[10px] p-2 rounded-lg font-mono ${isWhite ? 'bg-white/80 border border-purple-100 text-purple-900' : 'bg-slate-900 border border-purple-900 text-purple-300'}`}>
+                  <span>Itinerary: Depot (I3) &rarr; Pickup 1 (I1) &rarr; Drop 1 (I4) &rarr; Pickup 2 (I2) &rarr; Drop 2 (I6)</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* API Keys & Status Card (All 11 Active Geoapify APIs) */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
             isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
           }`}>
             <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
-              Geoapify GIS Services (10 Active APIs)
+              Geoapify GIS Services (11 Active APIs)
             </h3>
             <div className="space-y-2 text-xs">
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
+                  <div className="font-semibold">Route Planner API (Multi-Stop VRP)</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {routePlannerKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
               }`}>

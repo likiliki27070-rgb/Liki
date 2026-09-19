@@ -196,7 +196,8 @@ window.TRAFFIC_DATA = {
 
   geoapify: {
     apiKey: "b5a852f6b97e420ab0850cc32c31c9d9",
-    routingKey: "b5a852f6b97e420ab0850cc32c31c9d9",
+    routingKey: "f45cf1c920ff48c7aee949dfc6053cef",
+    routePlannerKey: "f45cf1c920ff48c7aee949dfc6053cef",
     isolineKey: "2378af2a2bf64130bef3abbcf70865d5",
     placesKey: "c5191509836e498095c57bf059ac791f",
     placeDetailsKey: "83ae1c36bd23478598f4501c4d9f114d",
@@ -206,7 +207,8 @@ window.TRAFFIC_DATA = {
     reverseKey: "b9a95414ae8a4dd3b9d2f97ae2fc0546",
     autocompleteKey: "509e607576bb4c1d94ee7f92dce287da",
     tileUrl: "https://maps.geoapify.com/v1/tile/{style}/{z}/{x}/{y}.png?apiKey=b5a852f6b97e420ab0850cc32c31c9d9",
-    routingUrl: "https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode={mode}&apiKey=b5a852f6b97e420ab0850cc32c31c9d9",
+    routingUrl: "https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode={mode}&apiKey=f45cf1c920ff48c7aee949dfc6053cef",
+    routePlannerUrl: "https://api.geoapify.com/v1/routeplanner?apiKey=f45cf1c920ff48c7aee949dfc6053cef",
     isolineUrl: "https://api.geoapify.com/v1/isoline?lat={lat}&lon={lon}&type={type}&mode={mode}&range={range}&apiKey=2378af2a2bf64130bef3abbcf70865d5",
     placesUrl: "https://api.geoapify.com/v2/places?categories={categories}&filter={filter}&limit={limit}&apiKey=c5191509836e498095c57bf059ac791f",
     placeDetailsUrl: "https://api.geoapify.com/v2/place-details?lat={lat}&lon={lon}&apiKey=83ae1c36bd23478598f4501c4d9f114d",

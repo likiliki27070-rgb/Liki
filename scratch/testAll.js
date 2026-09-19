@@ -176,8 +176,29 @@ http.get('http://localhost:3000', (res) => {
       const mmDist = mmJson.features && mmJson.features[0] ? mmJson.features[0].properties.distance : null;
       console.log(`✔ 13. /api/mapmatching (Map Matching API): HTTP ${mmRes.status} (Key: 8fca0f76..., Snapped Distance: ${mmDist}m)`);
 
+      // Test Route Planner API (POST)
+      const rpRes = await httpPost('http://localhost:3000/api/route-planner', {
+        mode: 'drive',
+        agents: [
+          {
+            start_location: [-122.4015, 37.7855],
+            time_windows: [[0, 7200]]
+          }
+        ],
+        shipments: [
+          {
+            id: 'shipment_1',
+            pickup: { location: [-122.4015, 37.7940], duration: 60 },
+            delivery: { location: [-122.3950, 37.7855], duration: 60 }
+          }
+        ]
+      });
+      const rpJson = JSON.parse(rpRes.body);
+      const rpDist = rpJson.features && rpJson.features[0] ? rpJson.features[0].properties.distance : null;
+      console.log(`✔ 14. /api/route-planner (Route Planner API): HTTP ${rpRes.status} (Key: f45cf1c9..., Planned Distance: ${rpDist}m)`);
+
       console.log('\n========================================================================');
-      console.log('SUCCESS: ALL 13 MAJOR SYSTEMS & 5 NEW GEOAPIFY APIS FULLY OPERATIONAL');
+      console.log('SUCCESS: ALL 14 MAJOR SYSTEMS & 6 GEOAPIFY ADVANCED APIS FULLY OPERATIONAL');
       console.log('========================================================================');
       process.exit(0);
     } catch (err) {

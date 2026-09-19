@@ -8,7 +8,8 @@ const PUBLIC_DIR = __dirname;
 const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || 'rc_21e8c10fa68cdfab4a710d21b6d2048bd4ab444a15f9e5b081383b316682b941';
 const DEFAULT_FEATHERLESS_MODEL = 'Qwen/Qwen2.5-7B-Instruct';
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
-const GEOAPIFY_ROUTING_KEY = process.env.GEOAPIFY_ROUTING_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
+const GEOAPIFY_ROUTING_KEY = process.env.GEOAPIFY_ROUTING_KEY || 'f45cf1c920ff48c7aee949dfc6053cef';
+const GEOAPIFY_ROUTE_PLANNER_KEY = process.env.GEOAPIFY_ROUTE_PLANNER_KEY || 'f45cf1c920ff48c7aee949dfc6053cef';
 const GEOAPIFY_ISOLINE_KEY = process.env.GEOAPIFY_ISOLINE_KEY || '2378af2a2bf64130bef3abbcf70865d5';
 const GEOAPIFY_PLACES_KEY = process.env.GEOAPIFY_PLACES_KEY || 'c5191509836e498095c57bf059ac791f';
 const GEOAPIFY_PLACE_DETAILS_KEY = process.env.GEOAPIFY_PLACE_DETAILS_KEY || '83ae1c36bd23478598f4501c4d9f114d';
@@ -74,6 +75,8 @@ const server = http.createServer((req, res) => {
       apiKey: GEOAPIFY_API_KEY,
       routingKey: GEOAPIFY_ROUTING_KEY,
       routingKeyMasked: GEOAPIFY_ROUTING_KEY.slice(0, 7) + '...' + GEOAPIFY_ROUTING_KEY.slice(-6),
+      routePlannerKey: GEOAPIFY_ROUTE_PLANNER_KEY,
+      routePlannerKeyMasked: GEOAPIFY_ROUTE_PLANNER_KEY.slice(0, 7) + '...' + GEOAPIFY_ROUTE_PLANNER_KEY.slice(-6),
       isolineKey: GEOAPIFY_ISOLINE_KEY,
       isolineKeyMasked: GEOAPIFY_ISOLINE_KEY.slice(0, 7) + '...' + GEOAPIFY_ISOLINE_KEY.slice(-6),
       placesKey: GEOAPIFY_PLACES_KEY,
@@ -93,6 +96,7 @@ const server = http.createServer((req, res) => {
       defaultStyle: 'osm-bright',
       tileUrlTemplate: `https://maps.geoapify.com/v1/tile/{style}/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`,
       routingUrlTemplate: `https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode={mode}&apiKey=${GEOAPIFY_ROUTING_KEY}`,
+      routePlannerUrlTemplate: `https://api.geoapify.com/v1/routeplanner?apiKey=${GEOAPIFY_ROUTE_PLANNER_KEY}`,
       isolineUrlTemplate: `https://api.geoapify.com/v1/isoline?lat={lat}&lon={lon}&type={type}&mode={mode}&range={range}&apiKey=${GEOAPIFY_ISOLINE_KEY}`,
       placesUrlTemplate: `https://api.geoapify.com/v2/places?categories={categories}&filter={filter}&limit={limit}&apiKey=${GEOAPIFY_PLACES_KEY}`,
       placeDetailsUrlTemplate: `https://api.geoapify.com/v2/place-details?lat={lat}&lon={lon}&apiKey=${GEOAPIFY_PLACE_DETAILS_KEY}`,
@@ -104,7 +108,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // API Route: Geoapify Turn-by-Turn Routing API Proxy (Key: b5a852f6b97e420ab0850cc32c31c9d9)
+  // API Route: Geoapify Turn-by-Turn Routing API Proxy (Key: f45cf1c920ff48c7aee949dfc6053cef)
   if (reqUrl === '/api/routing' && req.method === 'GET') {
     const urlObj = new URL(req.url, `http://${req.headers.host}`);
     const waypoints = urlObj.searchParams.get('waypoints') || '37.7855,-122.4015|37.7940,-122.3950';
@@ -397,6 +401,100 @@ const server = http.createServer((req, res) => {
       });
       mmReq.write(postData);
       mmReq.end();
+      return;
+    }
+  }
+
+  // API Route: Geoapify Route Planner API Proxy (Key: f45cf1c920ff48c7aee949dfc6053cef)
+  if (reqUrl === '/api/route-planner') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk;
+        if (body.length > 1e6) req.destroy();
+      });
+      req.on('end', () => {
+        const rpUrl = new URL(`https://api.geoapify.com/v1/routeplanner?apiKey=${GEOAPIFY_ROUTE_PLANNER_KEY}`);
+        const postData = body || JSON.stringify({
+          mode: 'drive',
+          agents: [{ start_location: [-122.4015, 37.7855], time_windows: [[0, 7200]] }],
+          shipments: [{
+            id: 'corridor_dispatch_1',
+            pickup: { location: [-122.4015, 37.7855], duration: 120 },
+            delivery: { location: [-122.3950, 37.7940], duration: 120 }
+          }]
+        });
+
+        const reqOpt = {
+          hostname: rpUrl.hostname,
+          path: rpUrl.pathname + rpUrl.search,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const rpReq = https.request(reqOpt, (gRes) => {
+          let b = '';
+          gRes.on('data', c => b += c);
+          gRes.on('end', () => {
+            res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+            res.end(b);
+          });
+        });
+        rpReq.on('error', (err) => {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        });
+        rpReq.write(postData);
+        rpReq.end();
+      });
+      return;
+    } else if (req.method === 'GET') {
+      const urlObj = new URL(req.url, `http://${req.headers.host}`);
+      const mode = urlObj.searchParams.get('mode') || 'drive';
+      const startLat = parseFloat(urlObj.searchParams.get('startLat') || '37.7855');
+      const startLon = parseFloat(urlObj.searchParams.get('startLon') || '-122.4015');
+      const endLat = parseFloat(urlObj.searchParams.get('endLat') || '37.7940');
+      const endLon = parseFloat(urlObj.searchParams.get('endLon') || '-122.3950');
+
+      const planPayload = {
+        mode,
+        agents: [{ start_location: [startLon, startLat], time_windows: [[0, 7200]] }],
+        shipments: [{
+          id: 'route_plan_task_1',
+          pickup: { location: [startLon, startLat], duration: 60 },
+          delivery: { location: [endLon, endLat], duration: 60 }
+        }]
+      };
+
+      const postData = JSON.stringify(planPayload);
+      const rpUrl = new URL(`https://api.geoapify.com/v1/routeplanner?apiKey=${GEOAPIFY_ROUTE_PLANNER_KEY}`);
+      const reqOpt = {
+        hostname: rpUrl.hostname,
+        path: rpUrl.pathname + rpUrl.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const rpReq = https.request(reqOpt, (gRes) => {
+        let b = '';
+        gRes.on('data', c => b += c);
+        gRes.on('end', () => {
+          res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+          res.end(b);
+        });
+      });
+      rpReq.on('error', (err) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      });
+      rpReq.write(postData);
+      rpReq.end();
       return;
     }
   }
