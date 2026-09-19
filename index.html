@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QUANTUM TRAFFIC | Quantum-Enhanced Adaptive Urban Traffic Optimization</title>
+  <meta name="description" content="Quantum-Enhanced Adaptive Urban Traffic Optimization - Hybrid Quantum-Classical Smart City Control Center Prototype">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              850: '#111827',
+              950: '#030712'
+            },
+            cyan: {
+              450: '#00d0f5'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(8px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- React 18 & ReactDOM 18 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel Standalone for JSX transformation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+
+  <!-- Three.js (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Leaflet GIS Map Engine (for Geoapify integration) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Google Fonts Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-base: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-card: #ffffff;
+      --bg-glass: rgba(255, 255, 255, 0.88);
+      --border-subtle: #e2e8f0;
+      --border-glass: rgba(226, 232, 240, 0.8);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --scrollbar-track: #f8fafc;
+      --scrollbar-thumb: #cbd5e1;
+    }
+
+    html.dark {
+      --bg-base: #070b16;
+      --bg-surface: #0c1222;
+      --bg-card: #111a2e;
+      --bg-glass: rgba(15, 23, 42, 0.82);
+      --border-subtle: #1e293b;
+      --border-glass: rgba(51, 65, 85, 0.6);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --scrollbar-track: #0a0f1d;
+      --scrollbar-thumb: #334155;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    /* Custom Modern Clean Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Subtle Glassmorphism reflection */
+    .glass-panel {
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glass);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
+    }
+
+    /* Leaflet custom styling */
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-glass) !important;
+      backdrop-filter: blur(10px);
+      border-radius: 14px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
+      border: 1px solid var(--border-glass) !important;
+      color: var(--text-main) !important;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      line-height: 1.4 !important;
+    }
+    .leaflet-popup-tip {
+      background: var(--bg-card) !important;
+    }
+    .leaflet-control-zoom {
+      border: 1px solid var(--border-glass) !important;
+      border-radius: 10px !important;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+    .leaflet-control-zoom a {
+      background-color: var(--bg-card) !important;
+      color: var(--text-main) !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background-color: var(--border-subtle) !important;
+      color: #0284c7 !important;
+    }
+
+    /* Scanline overlay for live CCTV simulation */
+    .cctv-scanlines {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.25) 50%
+      ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+      );
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body class="antialiased select-none">
+  <!-- React Mount Point -->
+  <div id="root" class="h-screen w-screen overflow-hidden"></div>
+
+  <!-- Modular Scripts -->
+  <script src="js/audio.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/threeEarth.js"></script>
+  <script src="js/threeCity.js"></script>
+  <script src="js/threeQubo.js"></script>
+  <script src="js/liveCamera.js"></script>
+  <script src="js/diagnostics.js"></script>
+  <script src="js/waterDrop.js"></script>
+  <script type="text/babel" src="js/app.js"></script>
+</body>
+</html>
