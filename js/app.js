@@ -76,6 +76,26 @@ function App() {
   const [showLandmarkModal, setShowLandmarkModal] = useState(false);
   const [landmarkCameraStep, setLandmarkCameraStep] = useState('exterior');
 
+  // Full-Width Command Center & Contextual Floating Overlays State
+  const [isFullscreenCity, setIsFullscreenCity] = useState(false);
+  const [selectedCameraId, setSelectedCameraId] = useState(null);
+  const [showQuantumOverlay, setShowQuantumOverlay] = useState(false);
+  const [showAnalyticsDrawer, setShowAnalyticsDrawer] = useState(false);
+
+  const toggleFullscreenCity = () => {
+    setIsFullscreenCity(prev => {
+      const next = !prev;
+      setTimeout(() => {
+        if (cityInstance.current && cityInstance.current.onResize) {
+          cityInstance.current.onResize();
+        }
+        window.dispatchEvent(new Event('resize'));
+      }, 60);
+      return next;
+    });
+    if (window.soundEngine) window.soundEngine.playClick();
+  };
+
   // Diagnostics state
   const [diagProgress, setDiagProgress] = useState(0);
   const [diagRunning, setDiagRunning] = useState(false);
@@ -269,6 +289,7 @@ function App() {
 
   const handleRunOptimization = () => {
     setShowOptModal(true);
+    setShowQuantumOverlay(true);
     window.trafficEngine.runQuantumOptimization(
       (pct, label) => {
         setOptProgress(pct);
@@ -328,72 +349,76 @@ function App() {
     <div className={`flex h-screen w-screen overflow-hidden font-sans select-none ${
       isWhite ? 'bg-slate-50 text-slate-800' : 'bg-slate-950 text-slate-100'
     }`}>
-      {/* Left Sidebar */}
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setActiveTab(tab);
-          if (window.soundEngine) window.soundEngine.playClick();
-        }}
-        onReplayIntro={replayIntro}
-        onOpenDiagnostics={() => setShowDiagnosticsModal(true)}
-        theme={theme}
-      />
+      {/* Left Sidebar (Collapses in Fullscreen City Mode) */}
+      {!isFullscreenCity && (
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            if (window.soundEngine) window.soundEngine.playClick();
+          }}
+          onReplayIntro={replayIntro}
+          onOpenDiagnostics={() => setShowDiagnosticsModal(true)}
+          theme={theme}
+        />
+      )}
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 h-full overflow-hidden">
-        {/* Top Command Bar */}
-        <TopBar
-          simTime={window.trafficEngine.getSimTimeString()}
-          isRunning={simState.isRunning}
-          onTogglePlay={() => {
-            window.trafficEngine.isRunning = !window.trafficEngine.isRunning;
-            setSimState(prev => ({ ...prev, isRunning: window.trafficEngine.isRunning }));
-            if (window.soundEngine) window.soundEngine.playClick();
-          }}
-          onReset={() => setShowResetModal(true)}
-          speed={simState.simSpeed}
-          onSetSpeed={(s) => window.trafficEngine.setSpeed(s)}
-          density={simState.densitySetting}
-          onSetDensity={(d) => window.trafficEngine.setDensity(d)}
-          optMode={simState.optimizationMode}
-          onSetOptMode={(m) => window.trafficEngine.setOptimizationMode(m)}
-          onRunOpt={handleRunOptimization}
-          isEmergency={simState.isEmergencyActive}
-          onToggleEmergency={() => {
-            if (simState.isEmergencyActive) {
-              window.trafficEngine.cancelEmergencyCorridor();
-            } else {
-              window.trafficEngine.activateEmergencyCorridor();
-            }
-          }}
-          isMuted={isAudioMuted}
-          onToggleSound={toggleSound}
-          devMode={devMode}
-          onToggleDevMode={() => setDevMode(!devMode)}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          onOpenAiCopilot={() => setShowAiCopilot(true)}
-          currentCityId={currentCityId}
-          onOpenCitySelect={() => setShowCitySelectModal(true)}
-          onOpenGlobe={() => setActiveTab('globe')}
-          activeTab={activeTab}
-          autoOptimizeEnabled={simState.autoOptimizeEnabled}
-          autoOptimizerStatus={simState.autoOptimizerStatus}
-          cooldownTimer={simState.optimizationCooldownTimer}
-          onToggleAutoOptimize={() => {
-            window.trafficEngine.autoOptimizeEnabled = !window.trafficEngine.autoOptimizeEnabled;
-            setSimState(prev => ({ ...prev, autoOptimizeEnabled: window.trafficEngine.autoOptimizeEnabled }));
-            if (window.soundEngine) window.soundEngine.playClick();
-          }}
-          timeOfDay={timeOfDay}
-          onSetTimeOfDay={handleSetTimeOfDay}
-          onOpenHistory={() => setShowHistoryModal(true)}
-          historyCount={(simState.optimizationHistory || []).length}
-        />
+        {/* Top Command Bar (Collapses in Fullscreen City Mode) */}
+        {!isFullscreenCity && (
+          <TopBar
+            simTime={window.trafficEngine.getSimTimeString()}
+            isRunning={simState.isRunning}
+            onTogglePlay={() => {
+              window.trafficEngine.isRunning = !window.trafficEngine.isRunning;
+              setSimState(prev => ({ ...prev, isRunning: window.trafficEngine.isRunning }));
+              if (window.soundEngine) window.soundEngine.playClick();
+            }}
+            onReset={() => setShowResetModal(true)}
+            speed={simState.simSpeed}
+            onSetSpeed={(s) => window.trafficEngine.setSpeed(s)}
+            density={simState.densitySetting}
+            onSetDensity={(d) => window.trafficEngine.setDensity(d)}
+            optMode={simState.optimizationMode}
+            onSetOptMode={(m) => window.trafficEngine.setOptimizationMode(m)}
+            onRunOpt={handleRunOptimization}
+            isEmergency={simState.isEmergencyActive}
+            onToggleEmergency={() => {
+              if (simState.isEmergencyActive) {
+                window.trafficEngine.cancelEmergencyCorridor();
+              } else {
+                window.trafficEngine.activateEmergencyCorridor();
+              }
+            }}
+            isMuted={isAudioMuted}
+            onToggleSound={toggleSound}
+            devMode={devMode}
+            onToggleDevMode={() => setDevMode(!devMode)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onOpenAiCopilot={() => setShowAiCopilot(true)}
+            currentCityId={currentCityId}
+            onOpenCitySelect={() => setShowCitySelectModal(true)}
+            onOpenGlobe={() => setActiveTab('globe')}
+            activeTab={activeTab}
+            autoOptimizeEnabled={simState.autoOptimizeEnabled}
+            autoOptimizerStatus={simState.autoOptimizerStatus}
+            cooldownTimer={simState.optimizationCooldownTimer}
+            onToggleAutoOptimize={() => {
+              window.trafficEngine.autoOptimizeEnabled = !window.trafficEngine.autoOptimizeEnabled;
+              setSimState(prev => ({ ...prev, autoOptimizeEnabled: window.trafficEngine.autoOptimizeEnabled }));
+              if (window.soundEngine) window.soundEngine.playClick();
+            }}
+            timeOfDay={timeOfDay}
+            onSetTimeOfDay={handleSetTimeOfDay}
+            onOpenHistory={() => setShowHistoryModal(true)}
+            historyCount={(simState.optimizationHistory || []).length}
+          />
+        )}
 
         {/* Dynamic Incident Notification Bar */}
-        {simState.activeIncident && (
+        {!isFullscreenCity && simState.activeIncident && (
           <div className={`px-6 py-2 flex items-center justify-between border-b backdrop-blur-md animate-pulse ${
             isWhite 
               ? 'bg-rose-50 border-rose-200 text-rose-800' 
@@ -431,7 +456,7 @@ function App() {
         )}
 
         {/* Main View Router */}
-        <div className={`flex-1 overflow-y-auto overflow-x-hidden p-6 relative ${
+        <div className={`flex-1 overflow-y-auto overflow-x-hidden ${isFullscreenCity ? 'p-0' : 'p-4 md:p-6'} relative ${
           isWhite ? 'bg-slate-50' : 'bg-slate-950'
         }`}>
           {activeTab === 'globe' && (
@@ -460,8 +485,30 @@ function App() {
               cityRef={cityRef}
               cityInstance={cityInstance}
               onRunOpt={handleRunOptimization}
-              onSelectIntersection={(id) => setSelectedIntersectionId(id)}
+              onSelectIntersection={(id) => {
+                setSelectedIntersectionId(id);
+                if (cityInstance.current && cityInstance.current.focusOnIntersection) {
+                  cityInstance.current.focusOnIntersection(id);
+                }
+              }}
+              selectedIntersectionId={selectedIntersectionId}
+              onClearIntersection={() => setSelectedIntersectionId(null)}
               theme={theme}
+              isFullscreenCity={isFullscreenCity}
+              onToggleFullscreenCity={toggleFullscreenCity}
+              showQuantumOverlay={showQuantumOverlay}
+              onToggleQuantumOverlay={() => setShowQuantumOverlay(prev => !prev)}
+              selectedCameraId={selectedCameraId}
+              onSelectCamera={setSelectedCameraId}
+              showAnalyticsDrawer={showAnalyticsDrawer}
+              onToggleAnalyticsDrawer={() => setShowAnalyticsDrawer(prev => !prev)}
+              showLandmarkModal={showLandmarkModal}
+              setShowLandmarkModal={setShowLandmarkModal}
+              landmarkCameraStep={landmarkCameraStep}
+              setLandmarkCameraStep={setLandmarkCameraStep}
+              setActiveTab={setActiveTab}
+              timeOfDay={timeOfDay}
+              onSetTimeOfDay={handleSetTimeOfDay}
             />
           )}
 
@@ -807,20 +854,27 @@ function TopBar({
     <header className={`h-16 border-b px-6 flex items-center justify-between backdrop-blur-lg z-10 ${
       isWhite ? 'bg-white/95 border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'
     }`}>
-      {/* Telemetry Status Pills */}
-      <div className="flex items-center space-x-3">
+      {/* Collapsible Top Status Strip: LIMO | NETWORK ONLINE | 8 INTERSECTIONS | OPTIMIZER ACTIVE | EMERGENCY STATUS | CURRENT TIME */}
+      <div className="flex items-center space-x-2">
+        {/* LIMO Badge */}
+        <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 border shadow-xs ${
+          isWhite ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-cyan-400'
+        }`}>
+          <span className="font-black tracking-wider">LIMO</span>
+        </div>
+
         {/* City Selector Pill */}
         <button
           onClick={onOpenCitySelect}
           title="Change Urban Digital Twin Metropolis"
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition border shadow-sm ${
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition border shadow-xs ${
             isWhite 
               ? 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800' 
               : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200'
           }`}
         >
           <span>{currentCity ? currentCity.flag : '🏙️'}</span>
-          <span className="font-bold">{currentCity ? currentCity.name : 'Select City'}</span>
+          <span className="font-bold hidden sm:inline">{currentCity ? currentCity.name : 'Select City'}</span>
           <span className="text-[10px] text-slate-400">▾</span>
         </button>
 
@@ -828,7 +882,7 @@ function TopBar({
         <button
           onClick={onOpenGlobe}
           title="Return to Global 3D Earth"
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition border shadow-sm ${
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center space-x-1 transition border shadow-xs ${
             activeTab === 'globe'
               ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white border-cyan-400 shadow-md'
               : (isWhite 
@@ -837,50 +891,52 @@ function TopBar({
           }`}
         >
           <span>🌍</span>
-          <span>3D Earth</span>
+          <span className="hidden md:inline">3D Earth</span>
         </button>
 
-        {/* Clock */}
-        <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
-          isWhite ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-cyan-300'
-        }`}>
-          <svg className={`w-4 h-4 ${isWhite ? 'text-cyan-600' : 'text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="font-mono text-xs font-semibold">{simTime}</span>
+        {/* Network Online Pill */}
+        <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="font-semibold">NETWORK ONLINE</span>
         </div>
 
-        {/* Autonomous Quantum Optimizer Status Pill */}
-        <div className="hidden xl:flex items-center space-x-2 text-xs">
-          <span className={isWhite ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium'}>Auto-Pilot:</span>
-          {autoOptimizeEnabled ? (
-            autoOptimizerStatus === 'OPTIMIZING' ? (
-              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-500/20 text-cyan-400 border border-cyan-400/40 animate-pulse flex items-center space-x-1">
-                <span>⚡</span>
-                <span>QAOA DISPATCHING</span>
-              </span>
-            ) : autoOptimizerStatus === 'COOLDOWN' ? (
-              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/20 text-amber-500 border border-amber-400/40 flex items-center space-x-1">
-                <span>⏳</span>
-                <span>COOLDOWN ({Math.ceil(cooldownTimer || 0)}s)</span>
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 flex items-center space-x-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                <span>ACTIVE</span>
-              </span>
-            )
-          ) : (
-            <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-500/20 text-slate-400 border border-slate-500/30">
-              OFF
-            </span>
-          )}
+        {/* 8 Intersections */}
+        <div className={`hidden xl:flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-mono border ${
+          isWhite ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+        }`}>
+          <span>8 INTERSECTIONS</span>
+        </div>
 
-          <span className={isWhite ? 'text-slate-300' : 'text-slate-700'}>|</span>
-          <span className={isWhite ? 'text-slate-500 font-medium' : 'text-slate-400 font-medium'}>Emergency:</span>
-          <span className={`font-semibold ${isEmergency ? 'text-rose-600 animate-pulse' : (isWhite ? 'text-slate-500' : 'text-slate-400')}`}>
-            {isEmergency ? 'ACTIVE' : 'NORMAL'}
-          </span>
+        {/* Optimizer Status */}
+        <div className={`hidden 2xl:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono border ${
+          autoOptimizeEnabled
+            ? (autoOptimizerStatus === 'OPTIMIZING'
+                ? 'bg-cyan-500/20 text-cyan-400 border-cyan-400/40 animate-pulse'
+                : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30')
+            : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
+        }`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${autoOptimizeEnabled ? 'bg-cyan-400 animate-ping' : 'bg-slate-500'}`}></span>
+          <span>{autoOptimizeEnabled ? (autoOptimizerStatus === 'OPTIMIZING' ? 'QAOA RUNNING' : 'OPTIMIZER ACTIVE') : 'OPTIMIZER OFF'}</span>
+        </div>
+
+        {/* Emergency Status */}
+        <div className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono border ${
+          isEmergency
+            ? 'bg-rose-500/15 text-rose-400 border-rose-500/40 animate-pulse'
+            : (isWhite ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-slate-950/60 border-slate-800 text-slate-400')
+        }`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${isEmergency ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`}></span>
+          <span>{isEmergency ? 'EMERGENCY ACTIVE' : 'EMERGENCY STANDBY'}</span>
+        </div>
+
+        {/* Clock */}
+        <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border font-mono text-[11px] ${
+          isWhite ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-slate-950 border-slate-800 text-cyan-300'
+        }`}>
+          <svg className={`w-3.5 h-3.5 ${isWhite ? 'text-cyan-600' : 'text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="font-semibold">{simTime}</span>
         </div>
       </div>
 
@@ -1093,100 +1149,119 @@ function TopBar({
 // 1. DASHBOARD VIEW (White Theme Support)
 // ----------------------------------------------------
 
-function DashboardView({ simState, cityRef, cityInstance, onRunOpt, onSelectIntersection, theme }) {
+function DashboardView({
+  simState,
+  cityRef,
+  cityInstance,
+  onRunOpt,
+  onSelectIntersection,
+  selectedIntersectionId,
+  onClearIntersection,
+  theme,
+  isFullscreenCity,
+  onToggleFullscreenCity,
+  showQuantumOverlay,
+  onToggleQuantumOverlay,
+  selectedCameraId,
+  onSelectCamera,
+  showAnalyticsDrawer,
+  onToggleAnalyticsDrawer,
+  showLandmarkModal,
+  setShowLandmarkModal,
+  landmarkCameraStep,
+  setLandmarkCameraStep,
+  setActiveTab,
+  timeOfDay,
+  onSetTimeOfDay
+}) {
   const isWhite = theme === 'white';
-  const [viewMode, setViewMode] = useState('3d'); // '3d' | 'gis'
+  const [viewMode, setViewMode] = useState('3d'); // '3d' | 'gis' | 'cctv'
   const m = simState.currentMetrics;
   const isOpt = simState.optimizationMode === 'hybrid';
 
-  const kpis = [
-    { title: "Average Waiting Time", val: `${m.waitingTime} s`, base: "54.2 s", delta: isOpt ? "-22.9%" : "0.0%", positive: true },
-    { title: "Average Queue Length", val: `${m.queueLength} veh`, base: "22.4 veh", delta: isOpt ? "-37.1%" : "0.0%", positive: true },
-    { title: "Traffic Throughput", val: `${m.throughput} veh/h`, base: "1,180 veh/h", delta: isOpt ? "+20.3%" : "0.0%", positive: true },
-    { title: "Fuel Consumption", val: `${m.fuelConsumption} L/h`, base: "96.5 L/h", delta: isOpt ? "-14.7%" : "0.0%", positive: true },
-    { title: "CO₂ Emissions", val: `${m.co2Emissions} kg/h`, base: "224.8 kg/h", delta: isOpt ? "-15.7%" : "0.0%", positive: true },
-    { title: "Emergency Travel Time", val: `${m.emergencyTravelTime} min`, base: "7.2 min", delta: isOpt || simState.isEmergencyActive ? "-33.3%" : "0.0%", positive: true }
-  ];
+  // Selected Intersection Node details
+  const selectedNode = simState.intersections.find(n => n.id === selectedIntersectionId);
+
+  // Active CCTV camera for PiP window
+  const activePipCamera = (window.liveCameraEngine?.cameras || []).find(c => c.id === selectedCameraId) || window.liveCameraEngine?.cameras[0];
+  const activePipNode = activePipCamera ? simState.intersections.find(n => n.id === activePipCamera.nodeId) : null;
+
+  // Average network density calculation
+  const networkDensity = simState.intersections && simState.intersections.length > 0
+    ? Math.round(simState.intersections.reduce((acc, curr) => acc + (curr.density || 0), 0) / simState.intersections.length)
+    : 68;
+
+  // Ensure canvas resizes when viewMode or fullscreen changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (cityInstance?.current && cityInstance.current.onResize) {
+        cityInstance.current.onResize();
+      }
+      window.dispatchEvent(new Event('resize'));
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [viewMode, isFullscreenCity]);
 
   return (
-    <div className="space-y-6">
-      {/* 6 High-Level KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {kpis.map((kpi, idx) => (
-          <div key={idx} className={`rounded-xl p-4 transition border ${
-            isWhite 
-              ? 'bg-white border-slate-200 shadow-sm hover:shadow hover:border-slate-300' 
-              : 'bg-slate-900/80 border-slate-800/80 shadow-lg hover:border-slate-700'
+    <div className={`w-full flex flex-col space-y-3 transition-all duration-300 ${
+      isFullscreenCity ? 'fixed inset-0 z-50 p-0 m-0 bg-slate-950 h-screen w-screen overflow-hidden' : 'relative min-h-[calc(100vh-140px)]'
+    }`}>
+
+      {/* Main Hero Centerpiece: 3D City Digital Twin Viewport (Expands to 85-90% Screen) */}
+      <div className={`w-full flex-1 relative overflow-hidden transition-all duration-300 border flex flex-col ${
+        isFullscreenCity 
+          ? 'h-full border-none rounded-none' 
+          : isWhite 
+            ? 'h-[calc(100vh-215px)] min-h-[580px] rounded-2xl bg-white border-slate-200 shadow-md' 
+            : 'h-[calc(100vh-215px)] min-h-[580px] rounded-2xl bg-slate-900/60 border-slate-800 shadow-2xl'
+      }`}>
+
+        {/* Top Floating Controls Overlay */}
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-none">
+          {/* Left: View Mode Switcher Pill */}
+          <div className={`flex items-center space-x-1.5 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-md ${
+            isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
           }`}>
-            <div className={`text-[11px] font-semibold uppercase tracking-wider mb-1 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>{kpi.title}</div>
-            <div className={`text-xl font-bold tracking-tight ${isWhite ? 'text-slate-900' : 'text-white'}`}>{kpi.val}</div>
-            <div className={`flex items-center justify-between mt-2 pt-2 border-t ${isWhite ? 'border-slate-100' : 'border-slate-800/60'}`}>
-              <span className={`text-[10px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Base: {kpi.base}</span>
-              <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
-                isOpt ? (isWhite ? 'text-emerald-700 bg-emerald-50' : 'text-emerald-400 bg-emerald-500/10') : (isWhite ? 'text-slate-500' : 'text-slate-400')
-              }`}>
-                {kpi.delta}
-              </span>
-            </div>
-            {/* Progress sparkline */}
-            <div className={`h-1 w-full mt-2 rounded-full overflow-hidden ${isWhite ? 'bg-slate-100' : 'bg-slate-800'}`}>
-              <div className="h-full bg-gradient-to-r from-cyan-500 to-indigo-600" style={{ width: isOpt ? '85%' : '45%' }}></div>
-            </div>
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === '3d'
+                  ? 'bg-cyan-600 text-white shadow-sm'
+                  : isWhite ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-cyan-300 animate-ping"></span>
+              <span>🏙️ 3D Digital Twin</span>
+            </button>
+            <button
+              onClick={() => setViewMode('gis')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === 'gis'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
+                  : isWhite ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <span>🗺️ Geoapify GIS</span>
+              <span className="text-[9px] bg-white/20 px-1 py-0.2 rounded font-mono">Live</span>
+            </button>
+            <button
+              onClick={() => setViewMode('cctv')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                viewMode === 'cctv'
+                  ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-sm'
+                  : isWhite ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-rose-400 animate-ping"></span>
+              <span>📹 CCTV Wall</span>
+              <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1 py-0.2 rounded font-mono">4-CAM</span>
+            </button>
           </div>
-        ))}
-      </div>
 
-      {/* Main Centerpiece: 3D City Digital Twin + Intelligence Sidecard */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Large City Viewport (3D / GIS Switchable) */}
-        <div className={`lg:col-span-3 rounded-2xl overflow-hidden relative flex flex-col h-[520px] border ${
-          isWhite ? 'bg-white border-slate-200 shadow-md' : 'bg-slate-900/60 border-slate-800 shadow-2xl'
-        }`}>
-          {/* Header Controls Overlay */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20 pointer-events-none">
-            {/* View Mode Switcher Pill */}
-            <div className={`flex items-center space-x-1.5 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
-              isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
-            }`}>
-              <button
-                onClick={() => setViewMode('3d')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  viewMode === '3d'
-                    ? 'bg-cyan-600 text-white shadow-sm'
-                    : isWhite ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full bg-cyan-300 animate-ping"></span>
-                <span>🏙️ 3D Digital Twin</span>
-              </button>
-              <button
-                onClick={() => setViewMode('gis')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  viewMode === 'gis'
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm'
-                    : isWhite ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span>🗺️ Geoapify GIS Map</span>
-                <span className="text-[9px] bg-white/20 px-1 py-0.2 rounded font-mono">Live</span>
-              </button>
-              <button
-                onClick={() => setViewMode('cctv')}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                  viewMode === 'cctv'
-                    ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-sm'
-                    : isWhite ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full bg-rose-400 animate-ping"></span>
-                <span>📹 Live CCTV</span>
-                <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1 py-0.2 rounded font-mono">4-CAM</span>
-              </button>
-            </div>
-
-            {/* Camera / Preset Switcher */}
-            {viewMode === '3d' ? (
-              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto ${
+          {/* Right: Camera Presets & Fullscreen City Mode Toggle */}
+          <div className="flex items-center space-x-2 pointer-events-auto">
+            {viewMode === '3d' && (
+              <div className={`hidden md:flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border ${
                 isWhite ? 'bg-white/90 border-slate-200 shadow-sm' : 'bg-slate-950/80 border-slate-800'
               }`}>
                 {[
@@ -1194,18 +1269,18 @@ function DashboardView({ simState, cityRef, cityInstance, onRunOpt, onSelectInte
                   { id: 'network', label: 'Network' },
                   { id: 'focus_I4', label: 'I4 Focus' },
                   { id: 'emergency', label: 'Corridor' },
-                  { id: 'railway', label: '🚄 Metro Railway' },
+                  { id: 'railway', label: '🚄 Metro' },
                   { id: 'optimizer', label: 'Angle 3' },
                   { id: 'avengers_tower', label: '🗼 Avengers HQ' }
                 ].map(cam => (
                   <button
                     key={cam.id}
                     onClick={() => {
-                      if (cityInstance.current) {
+                      if (cityInstance?.current) {
                         cityInstance.current.setCameraPreset(cam.id);
                         if (cam.id === 'avengers_tower') {
-                          setShowLandmarkModal(true);
-                          setLandmarkCameraStep('exterior');
+                          if (setShowLandmarkModal) setShowLandmarkModal(true);
+                          if (setLandmarkCameraStep) setLandmarkCameraStep('exterior');
                         }
                       }
                     }}
@@ -1219,334 +1294,606 @@ function DashboardView({ simState, cityRef, cityInstance, onRunOpt, onSelectInte
                   </button>
                 ))}
               </div>
-            ) : viewMode === 'cctv' ? (
-              <div className={`flex items-center space-x-2 backdrop-blur-md px-3 py-1.5 rounded-xl border pointer-events-auto text-[11px] font-medium ${
-                isWhite ? 'bg-white/90 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-950/80 border-slate-800 text-slate-200'
-              }`}>
-                <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
-                <span className="font-mono">LIVE OPTICAL MATRIX: 1080P 30FPS</span>
-              </div>
-            ) : (
-              <div className={`flex items-center space-x-2 backdrop-blur-md px-3 py-1.5 rounded-xl border pointer-events-auto text-[11px] font-medium ${
-                isWhite ? 'bg-white/90 border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-950/80 border-slate-800 text-slate-200'
-              }`}>
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span>Geoapify Maps API: Connected</span>
+            )}
+
+            {/* Fullscreen City Mode Toggle Button */}
+            <button
+              onClick={onToggleFullscreenCity}
+              title={isFullscreenCity ? "Exit Fullscreen City Mode" : "Expand 3D City to Fullscreen Command Center"}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border shadow-md backdrop-blur-md ${
+                isFullscreenCity
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400'
+                  : isWhite
+                    ? 'bg-white/95 hover:bg-slate-100 text-slate-800 border-slate-300'
+                    : 'bg-slate-950/90 hover:bg-slate-800 text-cyan-300 border-slate-700'
+              }`}
+            >
+              <span>{isFullscreenCity ? '✕' : '⛶'}</span>
+              <span>{isFullscreenCity ? 'Exit Fullscreen' : 'Fullscreen City'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Minimal Floating HUD in Fullscreen City Mode */}
+        {isFullscreenCity && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto backdrop-blur-xl bg-slate-950/85 border border-slate-800 px-4 py-1.5 rounded-2xl shadow-2xl flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              <span className="text-xs font-mono font-bold tracking-wider text-white">LIMO COMMAND CENTER</span>
+              <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-500/30">3D IMMERSIVE</span>
+            </div>
+
+            <div className="flex items-center space-x-1 text-xs">
+              <button
+                onClick={() => {
+                  window.trafficEngine.isRunning = !window.trafficEngine.isRunning;
+                  if (window.soundEngine) window.soundEngine.playClick();
+                }}
+                className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition"
+              >
+                {simState.isRunning ? '⏸ Pause' : '▶ Play'}
+              </button>
+              {[1, 2, 4].map(s => (
+                <button
+                  key={s}
+                  onClick={() => window.trafficEngine.setSpeed(s)}
+                  className={`px-2 py-1 rounded text-[11px] font-mono ${simState.simSpeed === s ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
+                >
+                  {s}x
+                </button>
+              ))}
+            </div>
+
+            {onSetTimeOfDay && (
+              <div className="flex items-center space-x-1 pl-2 border-l border-slate-800 text-xs">
+                {[
+                  { id: 'day', label: '☀️' },
+                  { id: 'dusk', label: '🌇' },
+                  { id: 'night', label: '🌙' }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => onSetTimeOfDay(t.id)}
+                    className={`p-1 rounded text-xs transition ${timeOfDay === t.id ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-white'}`}
+                    title={t.id}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
+        )}
 
-          {/* Three.js Canvas Mount */}
-          <div id="traffic-city-canvas" ref={cityRef} className={`w-full h-full flex-1 relative ${viewMode === '3d' ? 'block' : 'hidden'}`}>
-            {/* LIMO LANDMARK HUD Overlay */}
-            {showLandmarkModal && (
-              <div className={`absolute top-16 left-6 z-30 max-w-sm rounded-2xl border p-4 shadow-2xl backdrop-blur-xl transition-all ${
-                isWhite ? 'bg-white/95 border-sky-300 text-slate-800' : 'bg-slate-950/90 border-cyan-500/40 text-slate-100'
-              }`}>
-                <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-cyan-500/20">
-                  <div className="flex items-center space-x-2">
-                    <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">LIMO LANDMARK</span>
+        {/* Three.js Canvas Mount */}
+        <div id="traffic-city-canvas" ref={cityRef} className={`w-full h-full flex-1 relative ${viewMode === '3d' ? 'block' : 'hidden'}`}>
+          
+          {/* 1. Contextual Intersection Focus Floating Card */}
+          {selectedNode && (
+            <div className={`absolute top-16 right-6 z-30 w-80 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 ${
+              isWhite ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-slate-950/95 border-cyan-500/40 text-slate-100'
+            }`}>
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-cyan-500/20">
+                <div className="flex items-center space-x-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${
+                    selectedNode.phase.includes('GREEN') ? 'bg-emerald-500 animate-pulse' :
+                    selectedNode.phase.includes('YELLOW') ? 'bg-amber-500' : 'bg-rose-500'
+                  }`}></span>
+                  <span className="text-xs font-mono font-bold text-cyan-400">{selectedNode.id} — {selectedNode.name}</span>
+                </div>
+                <button
+                  onClick={onClearIntersection}
+                  className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-white/10"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/70 border-slate-800'}`}>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Density</div>
+                  <div className="text-base font-bold text-cyan-400 font-mono mt-0.5">{selectedNode.density}%</div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                    <div className="bg-cyan-500 h-full rounded-full" style={{ width: `${selectedNode.density}%` }}></div>
+                  </div>
+                </div>
+                <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/70 border-slate-800'}`}>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Queue</div>
+                  <div className="text-base font-bold text-amber-400 font-mono mt-0.5">{selectedNode.queueLength} veh</div>
+                  <div className="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                    <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min(100, selectedNode.queueLength * 4)}%` }}></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs mb-3 font-mono">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-sans">Current Phase:</span>
+                  <span className="font-bold text-emerald-400">{selectedNode.phase} ({selectedNode.phaseTimer}s)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-sans">Green Interval:</span>
+                  <span className="font-bold text-slate-200">{selectedNode.currentTiming.green}s</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 font-sans">Optimized Green:</span>
+                  <span className="font-bold text-cyan-400">{selectedNode.optimizedTiming.green}s</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
+                <button
+                  onClick={() => {
+                    if (cityInstance?.current && cityInstance.current.focusOnIntersection) {
+                      cityInstance.current.focusOnIntersection(selectedNode.id);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition text-center shadow-sm"
+                >
+                  🎯 Focus Node
+                </button>
+                <button
+                  onClick={() => {
+                    const cam = window.liveCameraEngine && window.liveCameraEngine.cameras.find(c => c.nodeId === selectedNode.id);
+                    if (cam) onSelectCamera(cam.id);
+                    else onSelectCamera('CAM-01');
+                  }}
+                  className={`px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition text-center border ${
+                    isWhite ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                  }`}
+                >
+                  📹 Optical Feed
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 2. Contextual Quantum Optimizer Floating Card */}
+          {showQuantumOverlay && (
+            <div className={`absolute top-16 left-6 z-30 w-80 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 ${
+              isWhite ? 'bg-white/95 border-indigo-200 text-slate-800' : 'bg-slate-950/95 border-indigo-500/40 text-slate-100'
+            }`}>
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-indigo-500/20">
+                <div className="flex items-center space-x-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 animate-ping"></span>
+                  <span className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider">QUANTUM OPTIMIZER</span>
+                </div>
+                <button
+                  onClick={onToggleQuantumOverlay}
+                  className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-white/10"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2 text-xs font-mono mb-4">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-slate-400 font-sans">QUBO Matrix</span>
+                  <span className="text-emerald-400 font-bold flex items-center space-x-1">
+                    <span>✓</span>
+                    <span>Formulated (32 Qubits)</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-slate-400 font-sans">QAOA Solver</span>
+                  <span className="text-cyan-400 font-bold">{simState.optimizationStatus === 'optimizing' ? 'RUNNING...' : 'CONVERGED'}</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-slate-400 font-sans">Iteration</span>
+                  <span className="text-slate-200 font-bold">42 / 50 (p=2)</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-slate-400 font-sans">Objective</span>
+                  <span className="text-amber-400 font-bold">0.184 (Delay Min)</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800">
+                  <span className="text-slate-400 font-sans">Signal Update</span>
+                  <span className="text-emerald-400 font-bold">8 Nodes Synced</span>
+                </div>
+              </div>
+
+              <button
+                onClick={onRunOpt}
+                className="w-full py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Execute Re-Optimization</span>
+              </button>
+            </div>
+          )}
+
+          {/* 3. Emergency Corridor Floating Banner */}
+          {simState.isEmergencyActive && (
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-30 max-w-lg w-full px-4 animate-in fade-in zoom-in-95">
+              <div className="backdrop-blur-xl bg-rose-950/90 border border-rose-500/60 shadow-2xl rounded-2xl p-3.5 text-white flex items-center justify-between space-x-4 animate-pulse">
+                <div className="flex items-center space-x-3">
+                  <span className="h-3 w-3 rounded-full bg-rose-500 animate-ping"></span>
+                  <div>
+                    <div className="text-xs font-mono font-bold tracking-wider text-rose-400 uppercase">
+                      🚑 EMERGENCY CORRIDOR ACTIVE
+                    </div>
+                    <div className="text-sm font-bold text-white">
+                      AMB-07 <span className="text-xs font-normal text-rose-200">· CODE RED · ETA: 01:42</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-rose-300">
+                      Route: I1 → I3 → I4 → I6 (Green Wave Preemption)
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => window.trafficEngine.cancelEmergencyCorridor()}
+                  className="px-3 py-1.5 rounded-lg bg-rose-600/40 hover:bg-rose-600 text-rose-200 hover:text-white border border-rose-500/50 text-xs font-semibold transition"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Floating Picture-in-Picture CCTV Window */}
+          {selectedCameraId && activePipCamera && (
+            <div className={`absolute bottom-16 right-6 z-30 w-84 rounded-2xl border p-3 shadow-2xl backdrop-blur-xl transition-all animate-in fade-in zoom-in-95 ${
+              isWhite ? 'bg-white/95 border-slate-300 text-slate-800' : 'bg-slate-950/95 border-slate-700 text-slate-100'
+            }`}>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 text-xs">
+                  <div className="flex items-center space-x-2 font-mono">
+                    <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping"></span>
+                    <span className="font-bold text-cyan-400">{activePipCamera.id}</span>
+                    <span className="text-slate-300 font-sans">{activePipCamera.name}</span>
                   </div>
                   <button
-                    onClick={() => {
-                      setShowLandmarkModal(false);
-                      if (cityInstance.current) cityInstance.current.setCameraPreset('overview');
-                    }}
+                    onClick={() => onSelectCamera(null)}
                     className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-white/10"
                   >
                     ✕
                   </button>
                 </div>
-
-                <div className="text-base font-extrabold tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500">
-                  AVENGERS TOWER-STYLE HQ
-                </div>
-
-                <div className="space-y-1 text-xs mb-3.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">CITY DISTRICT</span>
-                    <span className="font-semibold text-cyan-300">Grand Central & Intermodal Hub (I8)</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">TRAFFIC STATUS</span>
-                    <span className="font-semibold text-emerald-400 flex items-center space-x-1">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                      <span>Synchronized with Node I8 (Normal Flow)</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-700/50">
-                  <div className="text-[10px] uppercase font-mono text-slate-400 mb-1.5">Cinematic Landmark Camera:</div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <button
-                      onClick={() => {
-                        if (cityInstance.current) cityInstance.current.setLandmarkCameraStep('exterior');
-                        setLandmarkCameraStep('exterior');
-                      }}
-                      className={`px-2 py-1.5 text-[11px] font-semibold rounded-lg transition ${
-                        landmarkCameraStep === 'exterior'
-                          ? 'bg-cyan-600 text-white shadow-md'
-                          : isWhite ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      Exterior View
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (cityInstance.current) cityInstance.current.setLandmarkCameraStep('entrance');
-                        setLandmarkCameraStep('entrance');
-                      }}
-                      className={`px-2 py-1.5 text-[11px] font-semibold rounded-lg transition ${
-                        landmarkCameraStep === 'entrance'
-                          ? 'bg-cyan-600 text-white shadow-md'
-                          : isWhite ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      Entrance Plaza
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (cityInstance.current) cityInstance.current.setLandmarkCameraStep('skyline');
-                        setLandmarkCameraStep('skyline');
-                      }}
-                      className={`px-2 py-1.5 text-[11px] font-semibold rounded-lg transition ${
-                        landmarkCameraStep === 'skyline'
-                          ? 'bg-cyan-600 text-white shadow-md'
-                          : isWhite ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      Skyline View
-                    </button>
-                  </div>
+                {window.LiveCameraFeedCanvas && (
+                  <window.LiveCameraFeedCanvas
+                    camId={activePipCamera.id}
+                    nodeData={activePipNode}
+                    isEmergency={simState.isEmergencyActive}
+                    incident={simState.activeIncident}
+                    height={180}
+                    onExpand={() => {}}
+                  />
+                )}
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1 border-t border-slate-800/80">
+                  <span className="text-emerald-400 font-bold">1080P 30FPS · YOLOv8</span>
+                  <button
+                    onClick={() => setViewMode('cctv')}
+                    className="text-cyan-400 hover:text-cyan-300 underline"
+                  >
+                    Open Quad Matrix ➔
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Geoapify Map Embed Mount */}
-          {viewMode === 'gis' && (
-            <div className="w-full h-full flex-1 relative">
-              <GeoapifyMapEmbed simState={simState} onSelectIntersection={onSelectIntersection} theme={theme} />
             </div>
           )}
 
-          {/* CCTV Quad Matrix Mount */}
-          {viewMode === 'cctv' && (
-            <div className="w-full h-full flex-1 p-4 bg-slate-950 grid grid-cols-2 gap-3 overflow-y-auto pt-16">
-              {(window.liveCameraEngine ? window.liveCameraEngine.cameras : []).map(cam => (
-                <div key={cam.id} className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900/60 p-2 space-y-1.5 flex flex-col">
-                  <div className="flex items-center justify-between text-[11px] font-mono px-1">
-                    <span className="text-cyan-400 font-bold">{cam.id} · {cam.name}</span>
-                    <span className="text-slate-400 text-[10px]">{cam.angle}</span>
-                  </div>
-                  {window.LiveCameraFeedCanvas && (
-                    <window.LiveCameraFeedCanvas
-                      camId={cam.id}
-                      nodeData={simState.intersections.find(n => n.id === cam.nodeId)}
-                      isEmergency={simState.isEmergencyActive}
-                      incident={simState.activeIncident}
-                      height={185}
-                      onExpand={() => onSelectIntersection(cam.nodeId)}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Bottom Layer Toggles for 3D */}
-          {viewMode === '3d' && (
-            <div className={`absolute bottom-4 left-4 flex items-center space-x-2 z-10 backdrop-blur-md px-3 py-1.5 rounded-xl border ${
-              isWhite ? 'bg-white/90 border-slate-200 shadow-sm' : 'bg-slate-950/80 border-slate-800'
+          {/* 5. Avengers Tower Landmark HUD */}
+          {showLandmarkModal && (
+            <div className={`absolute top-16 left-6 z-30 max-w-sm rounded-2xl border p-4 shadow-2xl backdrop-blur-xl transition-all ${
+              isWhite ? 'bg-white/95 border-sky-300 text-slate-800' : 'bg-slate-950/90 border-cyan-500/40 text-slate-100'
             }`}>
-              <span className={`text-[10px] uppercase tracking-wider font-semibold mr-2 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Holographic Layers:</span>
-              {['density', 'queues', 'emergency'].map(layer => (
+              <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-cyan-500/20">
+                <div className="flex items-center space-x-2">
+                  <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">LIMO LANDMARK</span>
+                </div>
                 <button
-                  key={layer}
                   onClick={() => {
-                    if (cityInstance.current) {
-                      cityInstance.current.activeLayers[layer] = !cityInstance.current.activeLayers[layer];
-                      if (window.soundEngine) window.soundEngine.playClick();
-                    }
+                    if (setShowLandmarkModal) setShowLandmarkModal(false);
+                    if (cityInstance?.current) cityInstance.current.setCameraPreset('overview');
                   }}
-                  className={`px-2 py-0.5 text-[10px] font-medium rounded border capitalize ${
-                    isWhite 
-                      ? 'bg-slate-100 hover:bg-slate-200 text-cyan-700 border-slate-200' 
-                      : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border-slate-700'
-                  }`}
+                  className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-white/10"
                 >
-                  {layer}
+                  ✕
                 </button>
-              ))}
+              </div>
+
+              <div className="text-base font-extrabold tracking-wide mb-1 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500">
+                AVENGERS TOWER-STYLE HQ
+              </div>
+
+              <div className="space-y-1 text-xs mb-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">CITY DISTRICT</span>
+                  <span className="font-semibold text-cyan-300">Grand Central & Intermodal Hub (I8)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">TRAFFIC STATUS</span>
+                  <span className="font-semibold text-emerald-400 flex items-center space-x-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                    <span>Synchronized with Node I8 (Normal Flow)</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-700/50">
+                <div className="text-[10px] uppercase font-mono text-slate-400 mb-1.5">Cinematic Landmark Camera:</div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    onClick={() => {
+                      if (cityInstance?.current) cityInstance.current.setLandmarkCameraStep('exterior');
+                      if (setLandmarkCameraStep) setLandmarkCameraStep('exterior');
+                    }}
+                    className={`px-2 py-1.5 text-[11px] font-semibold rounded-lg transition ${
+                      landmarkCameraStep === 'exterior'
+                        ? 'bg-cyan-600 text-white shadow-md'
+                        : isWhite ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    Exterior View
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (cityInstance?.current) cityInstance.current.setLandmarkCameraStep('entrance');
+                      if (setLandmarkCameraStep) setLandmarkCameraStep('entrance');
+                    }}
+                    className={`px-2 py-1.5 text-[11px] font-semibold rounded-lg transition ${
+                      landmarkCameraStep === 'entrance'
+                        ? 'bg-cyan-600 text-white shadow-md'
+                        : isWhite ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    Entrance Plaza
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (cityInstance?.current) cityInstance.current.setLandmarkCameraStep('skyline');
+                      if (setLandmarkCameraStep) setLandmarkCameraStep('skyline');
+                    }}
+                    className={`px-2 py-1.5 text-[11px] font-semibold rounded-lg transition ${
+                      landmarkCameraStep === 'skyline'
+                        ? 'bg-cyan-600 text-white shadow-md'
+                        : isWhite ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    }`}
+                  >
+                    Skyline View
+                  </button>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Bottom Holographic Layer Toggles for 3D View */}
+          <div className={`absolute bottom-4 left-4 flex items-center space-x-2 z-10 backdrop-blur-md px-3 py-1.5 rounded-xl border ${
+            isWhite ? 'bg-white/90 border-slate-200 shadow-sm' : 'bg-slate-950/80 border-slate-800'
+          }`}>
+            <span className={`text-[10px] uppercase tracking-wider font-semibold mr-2 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Holographic Layers:</span>
+            {['density', 'queues', 'emergency'].map(layer => (
+              <button
+                key={layer}
+                onClick={() => {
+                  if (cityInstance?.current) {
+                    cityInstance.current.activeLayers[layer] = !cityInstance.current.activeLayers[layer];
+                    if (window.soundEngine) window.soundEngine.playClick();
+                  }
+                }}
+                className={`px-2 py-0.5 text-[10px] font-medium rounded border capitalize ${
+                  isWhite 
+                    ? 'bg-slate-100 hover:bg-slate-200 text-cyan-700 border-slate-200' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-cyan-300 border-slate-700'
+                }`}
+              >
+                {layer}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Right Intelligence Panel */}
-        <div className="space-y-4">
-          {/* Quick Intersections Card */}
-          <div className={`rounded-2xl p-4 border ${
-            isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800 shadow-lg'
-          }`}>
-            <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between ${
-              isWhite ? 'text-slate-700' : 'text-slate-300'
-            }`}>
-              <span>Intersection Telemetry</span>
-              <span className={`text-[10px] font-mono ${isWhite ? 'text-cyan-600' : 'text-cyan-400'}`}>{simState.intersections.length} Nodes</span>
-            </h3>
-            <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-              {simState.intersections.map(node => (
-                <div
-                  key={node.id}
-                  onClick={() => onSelectIntersection(node.id)}
-                  className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between group ${
-                    isWhite 
-                      ? 'bg-slate-50 hover:bg-cyan-50/50 border-slate-200 hover:border-cyan-400' 
-                      : 'bg-slate-950/60 border-slate-800/80 hover:border-cyan-500/50'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2.5">
-                    <span className={`h-2.5 w-2.5 rounded-full ${
-                      node.phase.includes('GREEN') ? 'bg-emerald-500' :
-                      node.phase.includes('YELLOW') ? 'bg-amber-500' : 'bg-rose-500'
-                    }`}></span>
-                    <div>
-                      <div className={`text-xs font-bold transition ${
-                        isWhite ? 'text-slate-900 group-hover:text-cyan-700' : 'text-slate-200 group-hover:text-cyan-300'
-                      }`}>
-                        {node.id} - {node.name}
-                      </div>
-                      <div className={`text-[10px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
-                        Queue: <span className="font-semibold">{node.queueLength}</span> veh | Density: <span className="font-semibold">{node.density}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-[11px] font-mono font-semibold ${isWhite ? 'text-cyan-700' : 'text-cyan-400'}`}>{node.currentTiming.green}s G</span>
-                    <div className={`text-[9px] ${isWhite ? 'text-slate-400' : 'text-slate-500'}`}>Opt: {node.optimizedTiming.green}s</div>
-                  </div>
+        {/* Geoapify Map Embed Mount */}
+        {viewMode === 'gis' && (
+          <div className="w-full h-full flex-1 relative">
+            <GeoapifyMapEmbed simState={simState} onSelectIntersection={onSelectIntersection} theme={theme} />
+          </div>
+        )}
+
+        {/* CCTV Quad Matrix Mount */}
+        {viewMode === 'cctv' && (
+          <div className="w-full h-full flex-1 p-4 bg-slate-950 grid grid-cols-2 gap-3 overflow-y-auto pt-16">
+            {(window.liveCameraEngine ? window.liveCameraEngine.cameras : []).map(cam => (
+              <div key={cam.id} className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-900/60 p-2 space-y-1.5 flex flex-col">
+                <div className="flex items-center justify-between text-[11px] font-mono px-1">
+                  <span className="text-cyan-400 font-bold">{cam.id} · {cam.name}</span>
+                  <span className="text-slate-400 text-[10px]">{cam.angle}</span>
                 </div>
-              ))}
+                {window.LiveCameraFeedCanvas && (
+                  <window.LiveCameraFeedCanvas
+                    camId={cam.id}
+                    nodeData={simState.intersections.find(n => n.id === cam.nodeId)}
+                    isEmergency={simState.isEmergencyActive}
+                    incident={simState.activeIncident}
+                    height={185}
+                    onExpand={() => onSelectIntersection(cam.nodeId)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Slim Bottom Telemetry Bar (Single Compact Row) */}
+      {!isFullscreenCity && (
+        <div className={`w-full rounded-2xl px-5 py-2.5 border backdrop-blur-md flex flex-wrap items-center justify-between gap-4 transition-all shadow-lg ${
+          isWhite 
+            ? 'bg-white/95 border-slate-200 text-slate-800' 
+            : 'bg-slate-900/90 border-slate-800 text-slate-100'
+        }`}>
+          {/* Telemetry Metrics */}
+          <div className="flex flex-wrap items-center gap-5 text-xs">
+            {/* Active Vehicles */}
+            <div className="flex items-center space-x-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className={`text-[10px] uppercase font-bold tracking-wider ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Active Vehicles:</span>
+              <span className="font-mono font-bold text-sm text-cyan-400">{simState.vehicles ? simState.vehicles.length : 147}</span>
+            </div>
+
+            <span className={isWhite ? 'text-slate-300' : 'text-slate-800'}>|</span>
+
+            {/* Avg Speed */}
+            <div className="flex items-center space-x-1.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Avg Speed:</span>
+              <span className="font-mono font-bold text-sm text-emerald-400">38.6 <span className="text-[10px] font-normal text-slate-400">km/h</span></span>
+            </div>
+
+            <span className={isWhite ? 'text-slate-300' : 'text-slate-800'}>|</span>
+
+            {/* Avg Delay */}
+            <div className="flex items-center space-x-1.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Avg Delay:</span>
+              <span className="font-mono font-bold text-sm text-amber-400">{m.waitingTime || '12.4'} <span className="text-[10px] font-normal text-slate-400">sec</span></span>
+            </div>
+
+            <span className={isWhite ? 'text-slate-300' : 'text-slate-800'}>|</span>
+
+            {/* Traffic Density */}
+            <div className="flex items-center space-x-1.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Traffic Density:</span>
+              <span className="font-mono font-bold text-sm text-cyan-400">{networkDensity}%</span>
+            </div>
+
+            <span className={isWhite ? 'text-slate-300' : 'text-slate-800'}>|</span>
+
+            {/* Throughput */}
+            <div className="flex items-center space-x-1.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Throughput:</span>
+              <span className="font-mono font-bold text-sm text-indigo-400">{m.throughput || '1,420'} <span className="text-[10px] font-normal text-slate-400">veh/hr</span></span>
+            </div>
+
+            <span className={isWhite ? 'text-slate-300' : 'text-slate-800'}>|</span>
+
+            {/* CO2 */}
+            <div className="flex items-center space-x-1.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>CO₂:</span>
+              <span className="font-mono font-bold text-sm text-emerald-400">{m.co2Emissions || '190'} <span className="text-[10px] font-normal text-slate-400">kg/hr</span></span>
             </div>
           </div>
 
-          {/* Quick Action Card */}
-          <div className={`rounded-2xl p-4 border ${
-            isWhite 
-              ? 'bg-gradient-to-br from-cyan-50 via-white to-indigo-50 border-cyan-200 shadow-sm' 
-              : 'bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-purple-950/30 border-cyan-500/30'
-          }`}>
-            <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${isWhite ? 'text-cyan-800' : 'text-cyan-300'}`}>QAOA Adaptive Control</div>
-            <p className={`text-[11px] mb-3 ${isWhite ? 'text-slate-600' : 'text-slate-300'}`}>Multi-intersection QUBO solver minimizes network waiting time and emissions.</p>
+          {/* Quick Action Overlay Shortcuts */}
+          <div className="flex items-center space-x-2">
             <button
-              onClick={onRunOpt}
-              className="w-full py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center justify-center space-x-2"
+              onClick={onToggleQuantumOverlay}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition border shadow-sm ${
+                showQuantumOverlay
+                  ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white border-cyan-400 shadow-md'
+                  : isWhite ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+              }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-              <span>Execute Quantum Optimization</span>
+              <span>⚡</span>
+              <span className="hidden sm:inline">Quantum Overlay</span>
+            </button>
+
+            <button
+              onClick={onToggleAnalyticsDrawer}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition border shadow-sm ${
+                showAnalyticsDrawer
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-400 shadow-md'
+                  : isWhite ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+              }`}
+            >
+              <span>📊</span>
+              <span className="hidden sm:inline">Analytics</span>
+            </button>
+
+            <button
+              onClick={() => onSelectCamera(selectedCameraId ? null : 'CAM-01')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition border shadow-sm ${
+                selectedCameraId
+                  ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white border-rose-400 shadow-md'
+                  : isWhite ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+              }`}
+            >
+              <span>📹</span>
+              <span className="hidden sm:inline">CCTV PiP</span>
             </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Environmental Telemetry Card: Ground, Soil, Trees & Street Lights */}
-      <div className={`rounded-2xl p-5 border ${
-        isWhite 
-          ? 'bg-gradient-to-r from-emerald-50/60 via-white to-teal-50/60 border-emerald-200 shadow-sm' 
-          : 'bg-gradient-to-r from-emerald-950/20 via-slate-900/80 to-teal-950/20 border-emerald-500/30 shadow-xl'
-      }`}>
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl text-emerald-500">
-              🌳
-            </div>
-            <div>
-              <div className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-emerald-800' : 'text-emerald-400'}`}>
-                Urban Eco-Digital Twin & Lighting Subsystem
+      {/* On-Demand Full Analytics Slide-Over Drawer */}
+      {showAnalyticsDrawer && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end animate-in fade-in">
+          <div className={`w-full max-w-xl h-full p-6 overflow-y-auto shadow-2xl border-l flex flex-col space-y-6 ${
+            isWhite ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-100'
+          }`}>
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div>
+                <h3 className="text-base font-bold flex items-center space-x-2">
+                  <span>📊</span>
+                  <span>Metropolitan Telemetry & Analytics</span>
+                </h3>
+                <p className={`text-xs ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Deep-dive performance metrics, quantum vs classical comparison, and canopy eco-twin
+                </p>
               </div>
-              <h4 className={`text-sm font-semibold mt-0.5 ${isWhite ? 'text-slate-900' : 'text-slate-200'}`}>
-                Smart City Canopy, Permeable Soil Zones & Adaptive Street Lights
-              </h4>
+              <button
+                onClick={onToggleAnalyticsDrawer}
+                className="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg hover:bg-white/10"
+              >
+                ✕ Close
+              </button>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center w-full lg:w-auto">
-            <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-white border-emerald-100 shadow-xs' : 'bg-slate-950/60 border-emerald-900/40'}`}>
-              <div className={`text-[10px] uppercase font-semibold ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Trees Planted</div>
-              <div className="text-base font-bold text-emerald-600 font-mono">248</div>
-              <div className="text-[9px] text-slate-400">Street / Shade / Pine</div>
+            {/* KPI Comparative Matrix */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { title: "Average Waiting Time", val: `${m.waitingTime} s`, base: "54.2 s", delta: isOpt ? "-22.9%" : "0.0%" },
+                { title: "Average Queue Length", val: `${m.queueLength} veh`, base: "22.4 veh", delta: isOpt ? "-37.1%" : "0.0%" },
+                { title: "Traffic Throughput", val: `${m.throughput} veh/h`, base: "1,180 veh/h", delta: isOpt ? "+20.3%" : "0.0%" },
+                { title: "Fuel Consumption", val: `${m.fuelConsumption} L/h`, base: "96.5 L/h", delta: isOpt ? "-14.7%" : "0.0%" },
+                { title: "CO₂ Emissions", val: `${m.co2Emissions} kg/h`, base: "224.8 kg/h", delta: isOpt ? "-15.7%" : "0.0%" },
+                { title: "Emergency Travel Time", val: `${m.emergencyTravelTime} min`, base: "7.2 min", delta: isOpt || simState.isEmergencyActive ? "-33.3%" : "0.0%" }
+              ].map((item, i) => (
+                <div key={i} className={`p-3 rounded-xl border ${isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950/60 border-slate-800'}`}>
+                  <div className={`text-[10px] uppercase font-semibold ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>{item.title}</div>
+                  <div className="text-base font-bold mt-0.5">{item.val}</div>
+                  <div className="text-[10px] text-emerald-400 font-semibold mt-1">Delta: {item.delta} vs baseline</div>
+                </div>
+              ))}
             </div>
-            <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-white border-emerald-100 shadow-xs' : 'bg-slate-950/60 border-emerald-900/40'}`}>
-              <div className={`text-[10px] uppercase font-semibold ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Green Canopy</div>
-              <div className="text-base font-bold text-emerald-600 font-mono">32%</div>
-              <div className="text-[9px] text-slate-400">Permeable Cover</div>
+
+            {/* Urban Eco-Digital Twin section */}
+            <div className={`p-4 rounded-xl border ${isWhite ? 'bg-emerald-50/50 border-emerald-200' : 'bg-emerald-950/20 border-emerald-500/30'}`}>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Urban Eco-Digital Twin & Canopy</h4>
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div>
+                  <div className="text-[10px] text-slate-400">Trees</div>
+                  <div className="text-base font-bold text-emerald-400 font-mono">248</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-400">Canopy</div>
+                  <div className="text-base font-bold text-emerald-400 font-mono">32%</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-400">Lights</div>
+                  <div className="text-base font-bold text-amber-400 font-mono">184</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-400">Soil Beds</div>
+                  <div className="text-base font-bold text-amber-600 font-mono">18</div>
+                </div>
+              </div>
             </div>
-            <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-white border-emerald-100 shadow-xs' : 'bg-slate-950/60 border-emerald-900/40'}`}>
-              <div className={`text-[10px] uppercase font-semibold ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Street Lights</div>
-              <div className="text-base font-bold text-amber-500 font-mono">184</div>
-              <div className="text-[9px] text-slate-400">Nocturnal Ground Pools</div>
-            </div>
-            <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-white border-emerald-100 shadow-xs' : 'bg-slate-950/60 border-emerald-900/40'}`}>
-              <div className={`text-[10px] uppercase font-semibold ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Road Network</div>
-              <div className="text-base font-bold text-cyan-600 font-mono">14.6 km</div>
-              <div className="text-[9px] text-slate-400">Avenues & Crossways</div>
-            </div>
-            <div className={`p-2.5 rounded-xl border ${isWhite ? 'bg-white border-emerald-100 shadow-xs' : 'bg-slate-950/60 border-emerald-900/40'}`}>
-              <div className={`text-[10px] uppercase font-semibold ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Soil Zones</div>
-              <div className="text-base font-bold text-amber-700 font-mono">18 Beds</div>
-              <div className="text-[9px] text-slate-400">#452c1e Rich Organic</div>
-            </div>
+
+            {/* Link to Full Performance View */}
+            <button
+              onClick={() => {
+                onToggleAnalyticsDrawer();
+                if (setActiveTab) setActiveTab('performance');
+              }}
+              className="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition text-center"
+            >
+              Open Full Classical vs Quantum Comparison Page ➔
+            </button>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Bottom Optimization Summary Banner */}
-      <div className={`rounded-2xl p-5 border ${
-        isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800/80 shadow-xl'
-      }`}>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <span className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-cyan-700' : 'text-cyan-400'}`}>Optimization Summary</span>
-            <h4 className={`text-sm font-semibold mt-0.5 ${isWhite ? 'text-slate-900' : 'text-slate-200'}`}>
-              Hybrid Quantum-Classical vs. Fixed Timing Baseline
-            </h4>
-          </div>
-
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-6 text-center">
-            <div>
-              <div className={`text-[11px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Throughput</div>
-              <div className="text-sm font-bold text-emerald-600">+20.3%</div>
-            </div>
-            <div>
-              <div className={`text-[11px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Waiting Time</div>
-              <div className="text-sm font-bold text-cyan-600">-22.9%</div>
-            </div>
-            <div>
-              <div className={`text-[11px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Queue Length</div>
-              <div className="text-sm font-bold text-cyan-600">-37.1%</div>
-            </div>
-            <div>
-              <div className={`text-[11px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Fuel Usage</div>
-              <div className="text-sm font-bold text-emerald-600">-14.7%</div>
-            </div>
-            <div>
-              <div className={`text-[11px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>CO₂ Emissions</div>
-              <div className="text-sm font-bold text-emerald-600">-15.7%</div>
-            </div>
-            <div>
-              <div className={`text-[11px] ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Emergency ETA</div>
-              <div className="text-sm font-bold text-rose-600">-33.3%</div>
-            </div>
-          </div>
-
-          <div className={`text-right text-[11px] font-mono hidden xl:block ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
-            <div>Quantum: QUBO + QAOA (p=2)</div>
-            <div>Baseline: Webster Fixed Timing</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
