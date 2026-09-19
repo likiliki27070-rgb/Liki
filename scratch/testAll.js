@@ -67,10 +67,15 @@ console.log('     Auto-Optimizer Status after eval:', engine.autoOptimizerStatus
 console.log('     Cooldown Timer:', engine.optimizationCooldownTimer);
 console.log('     Safety validation function output:', engine.validateCandidateSignalConfiguration());
 
-// 4. Test threeCity.js syntax
+// 4. Test threeCity.js & qflowCinematic.js syntax
 const threeCode = fs.readFileSync('js/threeCity.js', 'utf8');
 new vm.Script(threeCode);
 console.log('✔ 3. js/threeCity.js parsed cleanly (Length:', threeCode.length, 'bytes)');
+
+const qflowCode = fs.readFileSync('js/qflowCinematic.js', 'utf8');
+new vm.Script(qflowCode);
+console.log('✔ 3b. js/qflowCinematic.js parsed cleanly (Length:', qflowCode.length, 'bytes, 10 Scenes Engine)');
+
 
 // 5. Test diagnostics.js
 vm.runInContext(fs.readFileSync('js/diagnostics.js', 'utf8'), sandbox);

@@ -174,29 +174,12 @@ function App() {
     };
   }, []);
 
-  // Cinematic Intro Sequence Timer
+  // Cinematic Intro Audio Initialization
   useEffect(() => {
-    if (!showIntro) return;
-
-    if (introScene === 1) {
+    if (showIntro && window.soundEngine && !isAudioMuted) {
       window.soundEngine.startAmbient();
     }
-
-    const sceneDurations = [3500, 3200, 3400, 3200, 3400, 3200, 3400, 99999];
-    const duration = sceneDurations[introScene - 1] || 3000;
-
-    if (introScene < 8) {
-      const timer = setTimeout(() => {
-        setIntroScene(prev => prev + 1);
-        if (window.soundEngine && introScene === 4) {
-          window.soundEngine.playQuantumChime();
-        } else if (introScene === 6) {
-          window.soundEngine.playEmergencySiren();
-        }
-      }, duration);
-      return () => clearTimeout(timer);
-    }
-  }, [showIntro, introScene]);
+  }, [showIntro, isAudioMuted]);
 
   const completeIntro = () => {
     setShowIntro(false);
@@ -2633,194 +2616,222 @@ function SettingsView({ simState, devMode, setDevMode, onReplayIntro, onResetDem
 }
 
 // ----------------------------------------------------
-// CINEMATIC INTRO COMPONENT (Water Drop & Liquid Ripple Simulation)
+// CINEMATIC INTRO COMPONENT (Q-FLOW 10-Scene Cinematic Logo Animation Engine)
 // ----------------------------------------------------
 
-function CinematicIntroView({ scene, onSkip, onLaunch, isMuted, onToggleSound, theme }) {
+function CinematicIntroView({ onSkip, onLaunch, isMuted, onToggleSound, theme }) {
   const isWhite = theme === 'white';
-  const waterSimRef = useRef(null);
+  const engineRef = useRef(null);
+  const [activeScene, setActiveScene] = useState(1);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [timecode, setTimecode] = useState("00:00 / 00:32");
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
+  const sceneTitles = [
+    { id: 1, label: "01 · Darkness", title: "Darkness & Anticipation", desc: "Subtle atmospheric haze and floating quantum particles gather in deep contrast." },
+    { id: 2, label: "02 · Emergence", title: "Q-FLOW Logo Emergence", desc: "Metallic edge contours, rim lighting, and specular reflections reveal the 3D emblem." },
+    { id: 3, label: "03 · Energy", title: "Quantum Energy Activation", desc: "Coherent interconnected neural quantum nodes and data stream lines circulate." },
+    { id: 4, label: "04 · Transform", title: "Seamless Logo Transformation", desc: "Energy vectors expand outward as camera pushes through into the living digital city." },
+    { id: 5, label: "05 · City Reveal", title: "Digital City Twin Reveal", desc: "Cinematic aerial descent across connected intersections, roads, and smart infrastructure." },
+    { id: 6, label: "06 · Intelligence", title: "Traffic Intelligence Telemetry", desc: "Active vehicle streaks, queue monitoring, and intersection density telemetry." },
+    { id: 7, label: "07 · Quantum Solver", title: "QUBO & QAOA Optimization Pipeline", desc: "Traffic Data → Network Model → QUBO → QAOA Wave Solver → Ground State." },
+    { id: 8, label: "08 · Adaptive Flow", title: "Adaptive Green Wave Coordination", desc: "Signals adapt dynamically: Delays -34%, Queues -41%, Congestion -28%." },
+    { id: 9, label: "09 · Emergency", title: "Emergency Green Corridor Pre-emption", desc: "Ambulance A01 detected: green wave pre-empted along I1 → I3 → I4 → I6." },
+    { id: 10, label: "10 · Launch", title: "Q-FLOW Brand Identity & Launch", desc: "ADAPT • OPTIMIZE • CONNECT — Enter Live 3D Command Center." }
+  ];
 
   useEffect(() => {
-    if (!waterSimRef.current && window.WaterDropSimulation) {
-      waterSimRef.current = new window.WaterDropSimulation('water-drop-canvas', {
+    if (!engineRef.current && window.QFlowCinematicEngine) {
+      engineRef.current = new window.QFlowCinematicEngine('qflow-cinematic-canvas', {
         theme: theme,
-        onPrimaryImpact: () => {
-          if (window.soundEngine && window.soundEngine.playWaterDrop) {
-            window.soundEngine.playWaterDrop();
-          }
+        autoPlay: true,
+        logoSrc: 'assets/qflow_logo.jpg',
+        onSceneChange: (sceneId) => {
+          setActiveScene(sceneId);
+        },
+        onComplete: () => {
+          setActiveScene(10);
         }
       });
     }
 
+    const interval = setInterval(() => {
+      if (engineRef.current) {
+        const cur = Math.floor(engineRef.current.currentTime);
+        const tot = Math.floor(engineRef.current.totalDuration);
+        const curStr = `00:${cur < 10 ? '0' + cur : cur}`;
+        const totStr = `00:${tot < 10 ? '0' + tot : tot}`;
+        setTimecode(`${curStr} / ${totStr}`);
+        setIsPlaying(engineRef.current.isPlaying);
+      }
+    }, 200);
+
     return () => {
-      if (waterSimRef.current) {
-        waterSimRef.current.destroy();
-        waterSimRef.current = null;
+      clearInterval(interval);
+      if (engineRef.current) {
+        engineRef.current.destroy();
+        engineRef.current = null;
       }
     };
   }, [theme]);
 
+  const handleSeekScene = (sceneId) => {
+    if (engineRef.current) {
+      engineRef.current.seekToScene(sceneId);
+      setActiveScene(sceneId);
+      if (window.soundEngine && window.soundEngine.playClick) {
+        window.soundEngine.playClick();
+      }
+    }
+  };
+
+  const handleTogglePlay = () => {
+    if (engineRef.current) {
+      const playing = engineRef.current.togglePlay();
+      setIsPlaying(playing);
+      if (window.soundEngine && window.soundEngine.playClick) {
+        window.soundEngine.playClick();
+      }
+    }
+  };
+
+  const handleLaunch = () => {
+    setIsFadingOut(true);
+    if (window.soundEngine && window.soundEngine.playLogoImpact) {
+      window.soundEngine.playLogoImpact();
+    }
+    setTimeout(() => {
+      onLaunch();
+    }, 400);
+  };
+
+  const currentSceneInfo = sceneTitles.find(s => s.id === activeScene) || sceneTitles[0];
+
   return (
-    <div className={`relative h-screen w-screen flex flex-col justify-between p-8 overflow-hidden select-none ${
-      isWhite 
-        ? 'bg-gradient-to-b from-white via-slate-50 to-slate-100 text-slate-900' 
-        : 'bg-slate-950 text-white'
+    <div className={`relative h-screen w-screen flex flex-col justify-between p-6 sm:p-8 overflow-hidden select-none bg-slate-950 text-white transition-opacity duration-500 ${
+      isFadingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
     }`}>
-      {/* Interactive Water Drop & Liquid Wave Canvas */}
+      {/* 60 FPS High-Fidelity Q-FLOW Cinematic Canvas */}
       <canvas
-        id="water-drop-canvas"
-        className="absolute inset-0 w-full h-full pointer-events-auto cursor-crosshair z-0"
-        title="Click or drag anywhere to ripple the quantum wave surface"
+        id="qflow-cinematic-canvas"
+        className="absolute inset-0 w-full h-full pointer-events-auto cursor-pointer z-0"
+        title="Click to play / pause cinematic sequence"
+        onClick={handleTogglePlay}
       ></canvas>
 
-      {/* Top Controls */}
-      <div className="flex justify-between items-center z-20 pointer-events-auto">
+      {/* Top Floating Control Bar */}
+      <div className="flex flex-wrap justify-between items-center gap-3 z-20 pointer-events-auto backdrop-blur-md bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80 shadow-lg">
+        {/* Brand Header with Exact Q-FLOW Logo */}
         <div className="flex items-center space-x-3">
-          <img 
-            src="assets/limo_logo.jpg" 
-            alt="LIMO Logo" 
-            className="h-9 w-9 rounded-xl object-cover ring-2 ring-cyan-400/50 shadow-md" 
-          />
+          <div className="relative group shrink-0">
+            <img 
+              src="assets/qflow_logo.jpg" 
+              alt="Q-FLOW Logo" 
+              className="h-10 w-10 rounded-xl object-cover ring-2 ring-cyan-400/50 shadow-md transition-transform group-hover:scale-105" 
+            />
+            <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 border-2 border-slate-900 ring-1 ring-emerald-400 animate-pulse"></span>
+          </div>
           <div>
-            <span className={`text-xs font-mono tracking-widest uppercase block font-bold ${isWhite ? 'text-slate-800' : 'text-slate-200'}`}>LIMO · Digital Twin</span>
-            <span className={`text-[10px] hidden sm:inline ${isWhite ? 'text-cyan-700 font-medium' : 'text-cyan-400'}`}>💧 Quantum Liquid Wave Experience</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-black tracking-widest uppercase bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                Q-FLOW
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
+                SCENE {activeScene}/10
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono tracking-wide hidden sm:block">
+              Quantum-Enhanced Adaptive Urban Traffic Intelligence
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        {/* Player Controls & Actions */}
+        <div className="flex items-center space-x-2 text-xs font-mono">
+          {/* Timecode Badge */}
+          <div className="px-2.5 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-cyan-400 font-bold">
+            {timecode}
+          </div>
+
+          {/* Play/Pause Button */}
+          <button
+            onClick={handleTogglePlay}
+            className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white hover:border-cyan-500/50 transition flex items-center space-x-1.5"
+            title="Play / Pause Animation"
+          >
+            <span>{isPlaying ? '⏸ Pause' : '▶ Play'}</span>
+          </button>
+
+          {/* Sound Toggle */}
           <button
             onClick={onToggleSound}
-            className={`px-3 py-1.5 border text-xs font-medium rounded-lg transition backdrop-blur-md ${
-              isWhite ? 'bg-white/80 hover:bg-white border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'
-            }`}
+            className="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white hover:border-cyan-500/50 transition"
+            title="Toggle Web Audio"
           >
-            {isMuted ? "Sound: OFF" : "Sound: ON 💧"}
+            {isMuted ? "Sound: OFF" : "Sound: ON 🔊"}
           </button>
+
+          {/* Skip Intro */}
           <button
-            onClick={onSkip}
-            className={`px-3 py-1.5 border text-xs font-medium rounded-lg transition backdrop-blur-md ${
-              isWhite ? 'bg-white/80 hover:bg-white border-slate-200 text-slate-700 shadow-sm' : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:text-white'
-            }`}
+            onClick={handleLaunch}
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold transition shadow-md flex items-center space-x-1"
           >
-            Skip Intro →
+            <span>Skip to Command Center →</span>
           </button>
         </div>
       </div>
 
-      {/* Dynamic Cinematic Text Overlay */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center max-w-2xl mx-auto z-10 pointer-events-none">
-        {scene === 1 && (
-          <div className="space-y-4 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-mono bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-ping"></span>
-              <span>LIQUID WAVE SIMULATION</span>
+      {/* Floating Center HUD for Scene Titles & Context */}
+      <div className="flex-1 flex flex-col items-center justify-end pb-8 text-center max-w-2xl mx-auto z-10 pointer-events-none">
+        {activeScene < 10 ? (
+          <div className="space-y-2 animate-fade-in backdrop-blur-md bg-slate-950/70 p-5 rounded-2xl border border-slate-800/80 shadow-2xl">
+            <div className="inline-flex items-center space-x-2 px-3 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+              <span>{currentSceneInfo.label.toUpperCase()}</span>
             </div>
-            <h2 className={`text-4xl font-extrabold tracking-tight ${isWhite ? 'text-slate-900' : 'text-slate-100'}`}>THE FUTURE OF URBAN MOBILITY</h2>
-            <p className={`text-xl font-semibold ${isWhite ? 'text-cyan-700' : 'text-cyan-400'}`}>IS NO LONGER STATIC.</p>
-            <p className={`text-xs mt-2 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Click anywhere on screen to disturb the quantum liquid surface.</p>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              {currentSceneInfo.title}
+            </h2>
+            <p className="text-xs text-slate-400 max-w-lg mx-auto">
+              {currentSceneInfo.desc}
+            </p>
           </div>
-        )}
-
-        {scene === 2 && (
-          <div className="space-y-3 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <span className={`text-xs font-mono uppercase tracking-widest ${isWhite ? 'text-cyan-700' : 'text-cyan-400'}`}>Concentric Network Ripples</span>
-            <h2 className={`text-3xl font-bold ${isWhite ? 'text-slate-900' : 'text-white'}`}>6 Interconnected Signalized Corridors</h2>
-            <p className={`text-sm ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>A single perturbation in traffic density ripples outward across adjacent intersections.</p>
-          </div>
-        )}
-
-        {scene === 3 && (
-          <div className="space-y-3 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <span className="text-xs font-mono text-rose-600 uppercase tracking-widest font-semibold">Shockwave Bottleneck</span>
-            <h2 className="text-3xl font-bold text-rose-600">Central Square (I4) Congestion</h2>
-            <div className="grid grid-cols-3 gap-4 font-mono text-xs mt-3">
-              <div className={`p-2 rounded border ${isWhite ? 'bg-white/80 border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'}`}>Queue: 37 Veh</div>
-              <div className={`p-2 rounded border ${isWhite ? 'bg-white/80 border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'}`}>Wait: 61s</div>
-              <div className={`p-2 rounded border text-rose-600 font-bold ${isWhite ? 'bg-white/80 border-slate-200 shadow-sm' : 'bg-slate-900/80 border-slate-800'}`}>Fixed Timing Fail</div>
-            </div>
-          </div>
-        )}
-
-        {scene === 4 && (
-          <div className="space-y-3 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <span className={`text-xs font-mono uppercase tracking-widest ${isWhite ? 'text-purple-700 font-semibold' : 'text-purple-400'}`}>Quantum Engine Activation</span>
-            <h2 className={`text-2xl font-bold ${isWhite ? 'text-slate-900' : 'text-white'}`}>Traffic Data → QUBO → QAOA Wave Solver</h2>
-            <p className={`text-xs ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>Formulating combinatorial phase space into Quadratic Unconstrained Binary Optimization.</p>
-          </div>
-        )}
-
-        {scene === 5 && (
-          <div className="space-y-3 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <span className="text-xs font-mono text-emerald-700 uppercase tracking-widest font-semibold">Coherent Interference Minimum</span>
-            <h2 className="text-3xl font-bold text-emerald-600">Ground State Optimum Found</h2>
-            <p className={`text-xs font-mono ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>Best Objective: 0.187 | Candidate Bitstring: |10110010⟩</p>
-          </div>
-        )}
-
-        {scene === 6 && (
-          <div className="space-y-3 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <span className={`text-xs font-mono uppercase tracking-widest ${isWhite ? 'text-cyan-700 font-semibold' : 'text-cyan-400'}`}>Adaptive Transformation</span>
-            <h2 className={`text-3xl font-bold ${isWhite ? 'text-slate-900' : 'text-white'}`}>Green Waves Open Across City</h2>
-            <div className={`flex justify-center space-x-4 text-xs font-mono mt-2 ${isWhite ? 'text-cyan-800 font-semibold' : 'text-cyan-300'}`}>
-              <span>Wait: -23%</span>
-              <span>Queue: -37%</span>
-              <span>CO₂: -16%</span>
-            </div>
-          </div>
-        )}
-
-        {scene === 7 && (
-          <div className="space-y-3 animate-fade-in backdrop-blur-sm bg-white/40 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/40 dark:border-slate-800/40 shadow-sm">
-            <span className="text-xs font-mono text-rose-600 uppercase tracking-widest font-semibold">Emergency Priority</span>
-            <h2 className="text-3xl font-bold text-rose-600">Emergency Corridor: I1 → I3 → I4 → I6</h2>
-            <p className={`text-xs font-mono ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>Ambulance A01 ETA reduced by 2.4 min (33% faster)</p>
-          </div>
-        )}
-
-        {scene === 8 && (
-          <div className="space-y-5 animate-fade-in backdrop-blur-sm bg-white/50 dark:bg-slate-900/50 p-8 rounded-3xl border border-white/40 dark:border-slate-800/40 shadow-xl flex flex-col items-center">
-            <div className="relative group">
-              <img 
-                src="assets/limo_logo.jpg" 
-                alt="LIMO Official Brand Logo" 
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-2xl border-2 border-cyan-400/60 ring-4 ring-cyan-500/20 transition-transform group-hover:scale-105" 
-              />
-              <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 ring-2 ring-emerald-400 animate-pulse"></span>
-            </div>
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600">
-                LIMO
-              </h1>
-              <h3 className={`text-sm mt-1.5 font-bold tracking-wide ${isWhite ? 'text-slate-800' : 'text-slate-200'}`}>
-                limo-Quantum-Traffic-Optimization
-              </h3>
-              <p className={`text-xs mt-1 ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>Quantum-Enhanced Adaptive Urban Traffic Intelligence & 3D Digital Twin</p>
-            </div>
-
+        ) : (
+          /* Scene 10 Grand Final Reveal & Primary Launch CTA */
+          <div className="space-y-4 animate-fade-in backdrop-blur-md bg-slate-950/85 p-6 sm:p-8 rounded-3xl border border-cyan-500/40 shadow-2xl flex flex-col items-center pointer-events-auto">
             <button
-              onClick={onLaunch}
-              className="pointer-events-auto px-8 py-3 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg transition transform hover:scale-105"
+              onClick={handleLaunch}
+              className="px-8 py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:via-blue-500 hover:to-indigo-500 text-white rounded-2xl text-sm font-black tracking-wider shadow-2xl shadow-cyan-500/40 transition transform hover:scale-105 active:scale-95 flex items-center space-x-2 ring-2 ring-cyan-400/50"
             >
-              LAUNCH COMMAND CENTER →
+              <span>🚀 ENTER COMMAND CENTER →</span>
             </button>
+            <p className="text-[11px] font-mono text-slate-400">
+              Transforming live digital city into 3D traffic optimization twin
+            </p>
           </div>
         )}
       </div>
 
-      {/* Progress Dots & Ripple Hint */}
-      <div className="flex flex-col items-center space-y-2 z-20 pointer-events-none">
-        <span className={`text-[10px] font-mono ${isWhite ? 'text-slate-400' : 'text-slate-500'}`}>Click anywhere to create water ripples</span>
-        <div className="flex justify-center items-center space-x-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-            <div
-              key={s}
-              className={`h-1.5 rounded-full transition-all ${
-                s === scene 
-                  ? (isWhite ? 'w-8 bg-cyan-600' : 'w-8 bg-cyan-400')
-                  : (isWhite ? 'w-2 bg-slate-300 dark:bg-slate-700' : 'w-2 bg-slate-800')
-              }`}
-            ></div>
-          ))}
+      {/* Bottom Scrubber with All 10 Scene Pills */}
+      <div className="z-20 pointer-events-auto backdrop-blur-md bg-slate-950/70 p-2.5 rounded-2xl border border-slate-800/80 shadow-lg flex flex-col items-center space-y-2">
+        <div className="w-full flex items-center justify-between overflow-x-auto gap-1.5 px-1 py-0.5 text-[10px] font-mono">
+          {sceneTitles.map(sc => {
+            const isActive = activeScene === sc.id;
+            return (
+              <button
+                key={sc.id}
+                onClick={() => handleSeekScene(sc.id)}
+                className={`px-2.5 py-1.5 rounded-xl transition whitespace-nowrap font-bold flex items-center space-x-1 border ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-400 shadow-md scale-105'
+                    : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
+                }`}
+                title={sc.title}
+              >
+                <span>{sc.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

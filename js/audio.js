@@ -218,6 +218,115 @@ class SoundEngine {
       console.warn("Water drop sound error:", e);
     }
   }
+
+  playCinematicRiser() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(65, now);
+      osc.frequency.exponentialRampToValueAtTime(380, now + 3.2);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(140, now);
+      filter.frequency.exponentialRampToValueAtTime(2400, now + 3.2);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.06, now + 2.8);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 3.6);
+    } catch (e) {}
+  }
+
+  playLogoImpact() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      // Low sub-bass boom
+      const sub = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(95, now);
+      sub.frequency.exponentialRampToValueAtTime(32, now + 1.2);
+      subGain.gain.setValueAtTime(0.08, now);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+      sub.connect(subGain);
+      subGain.connect(this.ctx.destination);
+      sub.start(now);
+      sub.stop(now + 1.5);
+
+      // Glassy harmonic chime
+      const freqs = [523.25, 659.25, 783.99, 1046.50];
+      freqs.forEach((f, i) => {
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f, now + i * 0.04);
+        g.gain.setValueAtTime(0.001, now + i * 0.04);
+        g.gain.linearRampToValueAtTime(0.035, now + i * 0.04 + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.04 + 1.8);
+        o.connect(g);
+        g.connect(this.ctx.destination);
+        o.start(now + i * 0.04);
+        o.stop(now + i * 0.04 + 1.9);
+      });
+    } catch (e) {}
+  }
+
+  playDataStream() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      for (let i = 0; i < 4; i++) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200 + Math.random() * 800, now + i * 0.06);
+        gain.gain.setValueAtTime(0.015, now + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.06 + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + i * 0.06);
+        osc.stop(now + i * 0.06 + 0.05);
+      }
+    } catch (e) {}
+  }
+
+  playCorridorActivation() {
+    if (this.isMuted) return;
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.65);
+    } catch (e) {}
+  }
 }
 
 window.soundEngine = new SoundEngine();
