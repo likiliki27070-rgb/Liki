@@ -3710,6 +3710,31 @@ async function fetchAutocomplete(query, bias = 'proximity:-122.4015,37.7855') {
   }
 }
 
+// Turn-by-Turn Routing helper with fallback (Key: b5a852f6b97e420ab0850cc32c31c9d9)
+async function fetchGeoapifyRoute(waypoints, mode = 'drive', avoid = '') {
+  if (!waypoints) return null;
+  const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
+  try {
+    let url = `/api/routing?waypoints=${encodeURIComponent(waypoints)}&mode=${mode}&details=instruction_details`;
+    if (avoid) url += `&avoid=${encodeURIComponent(avoid)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      let fbUrl = `https://api.geoapify.com/v1/routing?waypoints=${encodeURIComponent(waypoints)}&mode=${mode}&details=instruction_details&apiKey=${routingKey}`;
+      if (avoid) fbUrl += `&avoid=${encodeURIComponent(avoid)}`;
+      const fb = await fetch(fbUrl);
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("Routing request failed:", e2);
+      return null;
+    }
+  }
+}
+
 // Helper to generate dynamic HTML divIcon for intersection
 function getIntersectionDivIcon(node, isEmergencyCorridor) {
   const isGreen = node.phase.includes('GREEN');
@@ -3748,7 +3773,7 @@ function GeoapifyMapEmbed({ simState, onSelectIntersection, theme }) {
   const isWhite = theme === 'white';
 
   const mapStyle = isWhite ? 'osm-bright' : 'dark-matter';
-  const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'dd3fedb3d79c4b2791987648148944e6';
+  const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -3941,9 +3966,19 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const [showRailway, setShowRailway] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Geoapify GIS Engine Connected (8 Nodes)');
   const autocompleteTimer = useRef(null);
+  const routeLayersRef = useRef([]);
 
-  const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'dd3fedb3d79c4b2791987648148944e6';
-  const geocodingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.geocodingKey) || 'fdf446b77a594928afc8794041b2d9e1';
+  // Turn-by-Turn Routing States
+  const [activeRoute, setActiveRoute] = useState(null);
+  const [routeMode, setRouteMode] = useState('drive');
+  const [routeFrom, setRouteFrom] = useState('I1');
+  const [routeTo, setRouteTo] = useState('I6');
+  const [isRouting, setIsRouting] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
+
+  const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
+  const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
+  const geocodingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.geocodingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
   const reverseKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.reverseKey) || 'b9a95414ae8a4dd3b9d2f97ae2fc0546';
   const autocompleteKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.autocompleteKey) || '509e607576bb4c1d94ee7f92dce287da';
 
@@ -4035,6 +4070,8 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
 
     return () => {
       if (mapRef.current) {
+        routeLayersRef.current.forEach(l => l.remove());
+        routeLayersRef.current = [];
         mapRef.current.remove();
         mapRef.current = null;
         markersRef.current = {};
@@ -4291,6 +4328,133 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
     setStatusMessage(`Navigated to ${label}`);
   };
 
+  // Geoapify Turn-by-Turn Routing Execution (Key: b5a852f6b97e420ab0850cc32c31c9d9)
+  const calculateRoute = async (fromId = routeFrom, toId = routeTo, mode = routeMode) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const fromNode = simState.intersections.find(n => n.id === fromId);
+    const toNode = simState.intersections.find(n => n.id === toId);
+    if (!fromNode || !toNode) {
+      setStatusMessage(`Routing error: node ${fromId} or ${toId} not found.`);
+      return;
+    }
+
+    setIsRouting(true);
+    setStatusMessage(`Routing via Geoapify [${mode.toUpperCase()}]: ${fromId} (${fromNode.name}) → ${toId} (${toNode.name})...`);
+
+    const waypoints = `${fromNode.lat},${fromNode.lon}|${toNode.lat},${toNode.lon}`;
+    const routeData = await fetchGeoapifyRoute(waypoints, mode);
+
+    setIsRouting(false);
+
+    if (!routeData || !routeData.features || !routeData.features[0]) {
+      setStatusMessage(`Geoapify Routing failed between ${fromId} and ${toId}. Check API key b5a852f6...`);
+      return;
+    }
+
+    const feature = routeData.features[0];
+    let latlngs = [];
+    if (feature.geometry.type === 'MultiLineString') {
+      latlngs = feature.geometry.coordinates.flatMap(line => line.map(([lon, lat]) => [lat, lon]));
+    } else if (feature.geometry.type === 'LineString') {
+      latlngs = feature.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+    } else if (feature.geometry.coordinates && feature.geometry.coordinates[0] && Array.isArray(feature.geometry.coordinates[0][0])) {
+      latlngs = feature.geometry.coordinates[0].map(([lon, lat]) => [lat, lon]);
+    } else {
+      latlngs = (feature.geometry.coordinates || []).map(([lon, lat]) => [lat, lon]);
+    }
+    const props = feature.properties || {};
+    const distanceM = props.distance || 0;
+    const timeS = props.time || 0;
+    const distanceKm = (distanceM / 1000).toFixed(2);
+    const durationMin = (timeS / 60).toFixed(1);
+    const steps = (props.legs && props.legs[0] && props.legs[0].steps) ? props.legs[0].steps : [];
+
+    // Clear prior route layers
+    routeLayersRef.current.forEach(l => l.remove());
+    routeLayersRef.current = [];
+
+    // Cyan/Rose glow polyline
+    const isEm = mode === 'emergency';
+    const glowLine = L.polyline(latlngs, {
+      color: isEm ? '#f43f5e' : '#00e5ff',
+      weight: 10,
+      opacity: 0.45,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+    routeLayersRef.current.push(glowLine);
+
+    // Primary route path
+    const routeLine = L.polyline(latlngs, {
+      color: isEm ? '#e11d48' : '#0284c7',
+      weight: 5,
+      opacity: 0.95,
+      dashArray: mode === 'bicycle' ? '6, 6' : null,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+    routeLayersRef.current.push(routeLine);
+
+    // Origin Pin A
+    const startIcon = L.divIcon({
+      className: 'route-start-pin',
+      html: `
+        <div style="width: 28px; height: 28px; border-radius: 9999px; background: #10b981; border: 2.5px solid #ffffff; box-shadow: 0 4px 12px rgba(16,185,129,0.55); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 11px; font-weight: 800; font-family: monospace;">
+          A
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    const startMarker = L.marker([fromNode.lat, fromNode.lon], { icon: startIcon }).addTo(map);
+    startMarker.bindTooltip(`<b>Start (A):</b> ${fromNode.id} - ${fromNode.name}`, { sticky: true });
+    routeLayersRef.current.push(startMarker);
+
+    // Destination Pin B
+    const endIcon = L.divIcon({
+      className: 'route-end-pin',
+      html: `
+        <div style="width: 28px; height: 28px; border-radius: 9999px; background: #ef4444; border: 2.5px solid #ffffff; box-shadow: 0 4px 12px rgba(239,68,68,0.55); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 11px; font-weight: 800; font-family: monospace;">
+          B
+        </div>
+      `,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    const endMarker = L.marker([toNode.lat, toNode.lon], { icon: endIcon }).addTo(map);
+    endMarker.bindTooltip(`<b>End (B):</b> ${toNode.id} - ${toNode.name}`, { sticky: true });
+    routeLayersRef.current.push(endMarker);
+
+    map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+    setActiveRoute({
+      fromId,
+      toId,
+      fromName: fromNode.name,
+      toName: toNode.name,
+      distanceKm,
+      durationMin,
+      mode,
+      stepsCount: steps.length,
+      steps: steps.map(s => ({
+        instruction: s.instruction ? s.instruction.text : 'Proceed along corridor',
+        distance: s.distance,
+        time: s.time
+      }))
+    });
+
+    setStatusMessage(`Geoapify Route: ${fromId} → ${toId} | ${distanceKm} km | ~${durationMin} min | Mode: ${mode.toUpperCase()}`);
+  };
+
+  const clearActiveRoute = () => {
+    routeLayersRef.current.forEach(l => l.remove());
+    routeLayersRef.current = [];
+    setActiveRoute(null);
+    setStatusMessage('Active route cleared.');
+  };
+
   return (
     <div className="h-full flex flex-col space-y-4">
       {/* Top Header & GIS Command Bar */}
@@ -4393,42 +4557,75 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
         }`}>
           {/* Top Floating Controls on Map */}
           <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 z-[1000] pointer-events-none">
-            {/* Quick Presets */}
-            <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
-              isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
-            }`}>
-              <button
-                onClick={fitAllNodes}
-                className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                  isWhite ? 'text-cyan-700 hover:bg-cyan-50' : 'text-cyan-300 hover:bg-slate-800'
-                }`}
-              >
-                📍 Fit All 8 Nodes
-              </button>
-              <button
-                onClick={() => jumpToPreset([37.7940, -122.4015], 15, 'North Hub (I7, I1, I2)')}
-                className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition ${
-                  isWhite ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                North (I7/I1/I2)
-              </button>
-              <button
-                onClick={() => jumpToPreset([37.7855, -122.4015], 15, 'Central Core (I3, I4)')}
-                className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition ${
-                  isWhite ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                Central (I3/I4)
-              </button>
-              <button
-                onClick={() => jumpToPreset([37.7770, -122.4015], 15, 'South Terminal (I5, I6, I8)')}
-                className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition ${
-                  isWhite ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-slate-800'
-                }`}
-              >
-                South (I5/I6/I8)
-              </button>
+            {/* Quick Presets & Route Quick Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
+                isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+              }`}>
+                <button
+                  onClick={fitAllNodes}
+                  className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
+                    isWhite ? 'text-cyan-700 hover:bg-cyan-50' : 'text-cyan-300 hover:bg-slate-800'
+                  }`}
+                >
+                  📍 Fit All 8 Nodes
+                </button>
+                <button
+                  onClick={() => jumpToPreset([37.7940, -122.4015], 15, 'North Hub (I7, I1, I2)')}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition ${
+                    isWhite ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  North
+                </button>
+                <button
+                  onClick={() => jumpToPreset([37.7855, -122.4015], 15, 'Central Core (I3, I4)')}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition ${
+                    isWhite ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  Central
+                </button>
+                <button
+                  onClick={() => jumpToPreset([37.7770, -122.4015], 15, 'South Terminal (I5, I6, I8)')}
+                  className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition ${
+                    isWhite ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  South
+                </button>
+              </div>
+
+              {/* Quick Route Buttons */}
+              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
+                isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+              }`}>
+                <button
+                  onClick={() => calculateRoute('I1', 'I6', 'emergency')}
+                  disabled={isRouting}
+                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 transition flex items-center space-x-1"
+                  title="Route Emergency Corridor along I1 -> I6 with Geoapify"
+                >
+                  <span>🚑 Route Corridor</span>
+                </button>
+                <button
+                  onClick={() => calculateRoute('I1', 'I8', 'drive')}
+                  disabled={isRouting}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-slate-800 transition"
+                  title="Route Transit Drive I1 -> I8"
+                >
+                  <span>🚗 Route I1→I8</span>
+                </button>
+                {activeRoute && (
+                  <button
+                    onClick={clearActiveRoute}
+                    className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
+                    title="Clear Active Route Polyline"
+                  >
+                    ✕ Clear
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Tile Style Selector */}
@@ -4470,14 +4667,174 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
 
         {/* Right Telemetry & Node Leaderboard Sidebar */}
         <div className="space-y-4">
+          {/* Dedicated Geoapify Turn-by-Turn Routing Engine Card */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-base">🧭</span>
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
+                  Geoapify Routing Engine
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200 font-bold">
+                API Key: {routingKey.slice(0, 6)}...
+              </span>
+            </div>
+
+            {/* Travel Mode Selector */}
+            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl">
+              {[
+                { id: 'drive', label: 'Drive', icon: '🚗' },
+                { id: 'truck', label: 'Truck', icon: '🚚' },
+                { id: 'bicycle', label: 'Bicycle', icon: '🚲' },
+                { id: 'walk', label: 'Walk', icon: '🚶' }
+              ].map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setRouteMode(m.id)}
+                  className={`py-1 rounded-lg text-[10px] font-bold flex flex-col items-center transition ${
+                    routeMode === m.id
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : isWhite ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-xs">{m.icon}</span>
+                  <span>{m.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Origin and Destination Selectors */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label className={`block text-[10px] font-semibold mb-1 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Start (Origin)
+                </label>
+                <select
+                  value={routeFrom}
+                  onChange={(e) => setRouteFrom(e.target.value)}
+                  className={`w-full px-2 py-1.5 rounded-xl border text-xs font-mono font-medium outline-none ${
+                    isWhite ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-white'
+                  }`}
+                >
+                  {simState.intersections.map(n => (
+                    <option key={n.id} value={n.id}>{n.id} - {n.name.slice(0, 14)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-[10px] font-semibold mb-1 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
+                  End (Destination)
+                </label>
+                <select
+                  value={routeTo}
+                  onChange={(e) => setRouteTo(e.target.value)}
+                  className={`w-full px-2 py-1.5 rounded-xl border text-xs font-mono font-medium outline-none ${
+                    isWhite ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-white'
+                  }`}
+                >
+                  {simState.intersections.map(n => (
+                    <option key={n.id} value={n.id}>{n.id} - {n.name.slice(0, 14)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Compute Route Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => calculateRoute(routeFrom, routeTo, routeMode)}
+                disabled={isRouting}
+                className="w-full py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+              >
+                {isRouting ? <span>Computing...</span> : <span>🧭 Calculate Route</span>}
+              </button>
+              <button
+                onClick={() => calculateRoute('I1', 'I6', 'emergency')}
+                disabled={isRouting}
+                className="w-full py-2 bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+              >
+                <span>🚑 Emergency Wave</span>
+              </button>
+            </div>
+
+            {/* Active Route Telemetry & Turn Instructions */}
+            {activeRoute && (
+              <div className={`p-3 rounded-xl border space-y-2 text-xs ${
+                isWhite ? 'bg-cyan-50/70 border-cyan-200' : 'bg-cyan-950/30 border-cyan-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-cyan-700 dark:text-cyan-300">
+                    Route: {activeRoute.fromId} &rarr; {activeRoute.toId} ({activeRoute.mode.toUpperCase()})
+                  </span>
+                  <button
+                    onClick={clearActiveRoute}
+                    className="text-[10px] font-semibold text-rose-500 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-cyan-100' : 'bg-slate-900 border-cyan-900'}`}>
+                    <span className="text-[10px] text-slate-500 block">Distance</span>
+                    <strong className="text-sm font-mono text-cyan-600 dark:text-cyan-400">{activeRoute.distanceKm} km</strong>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-cyan-100' : 'bg-slate-900 border-cyan-900'}`}>
+                    <span className="text-[10px] text-slate-500 block">Est. Time</span>
+                    <strong className="text-sm font-mono text-cyan-600 dark:text-cyan-400">{activeRoute.durationMin} min</strong>
+                  </div>
+                </div>
+
+                {activeRoute.stepsCount > 0 && (
+                  <div>
+                    <button
+                      onClick={() => setShowSteps(!showSteps)}
+                      className="w-full py-1 text-[11px] font-semibold text-cyan-700 dark:text-cyan-300 flex items-center justify-between hover:underline"
+                    >
+                      <span>Turn-by-Turn Steps ({activeRoute.stepsCount})</span>
+                      <span>{showSteps ? '▲ Hide' : '▼ View'}</span>
+                    </button>
+                    {showSteps && (
+                      <div className="mt-1.5 max-h-36 overflow-y-auto space-y-1 pr-1 font-mono text-[10px]">
+                        {activeRoute.steps.map((st, i) => (
+                          <div key={i} className={`p-1.5 rounded border flex items-start space-x-1.5 ${
+                            isWhite ? 'bg-white/80 border-slate-200 text-slate-700' : 'bg-slate-900/80 border-slate-800 text-slate-300'
+                          }`}>
+                            <span className="text-cyan-500 font-bold">{i + 1}.</span>
+                            <div className="flex-1">
+                              <div>{st.instruction}</div>
+                              <div className="text-[9px] text-slate-400">{(st.distance).toFixed(0)}m · {Math.ceil(st.time)}s</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* API Keys & Status Card */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
             isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
           }`}>
             <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
-              Geoapify GIS Services (4 Active APIs)
+              Geoapify GIS Services (5 Active APIs)
             </h3>
             <div className="space-y-2 text-xs">
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
+                  <div className="font-semibold">Turn-by-Turn Routing API</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {routingKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
               }`}>

@@ -7,8 +7,9 @@ const PORT = 3000;
 const PUBLIC_DIR = __dirname;
 const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || 'rc_21e8c10fa68cdfab4a710d21b6d2048bd4ab444a15f9e5b081383b316682b941';
 const DEFAULT_FEATHERLESS_MODEL = 'Qwen/Qwen2.5-7B-Instruct';
-const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY || 'dd3fedb3d79c4b2791987648148944e6';
-const GEOAPIFY_GEOCODING_KEY = process.env.GEOAPIFY_GEOCODING_KEY || 'fdf446b77a594928afc8794041b2d9e1';
+const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
+const GEOAPIFY_ROUTING_KEY = process.env.GEOAPIFY_ROUTING_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
+const GEOAPIFY_GEOCODING_KEY = process.env.GEOAPIFY_GEOCODING_KEY || 'b5a852f6b97e420ab0850cc32c31c9d9';
 const GEOAPIFY_REVERSE_KEY = process.env.GEOAPIFY_REVERSE_KEY || 'b9a95414ae8a4dd3b9d2f97ae2fc0546';
 const GEOAPIFY_AUTOCOMPLETE_KEY = process.env.GEOAPIFY_AUTOCOMPLETE_KEY || '509e607576bb4c1d94ee7f92dce287da';
 
@@ -66,6 +67,8 @@ const server = http.createServer((req, res) => {
       status: 'ONLINE',
       provider: 'Geoapify',
       apiKey: GEOAPIFY_API_KEY,
+      routingKey: GEOAPIFY_ROUTING_KEY,
+      routingKeyMasked: GEOAPIFY_ROUTING_KEY.slice(0, 7) + '...' + GEOAPIFY_ROUTING_KEY.slice(-6),
       geocodingKey: GEOAPIFY_GEOCODING_KEY,
       reverseKey: GEOAPIFY_REVERSE_KEY,
       autocompleteKey: GEOAPIFY_AUTOCOMPLETE_KEY,
@@ -74,9 +77,37 @@ const server = http.createServer((req, res) => {
       styles: ['osm-bright', 'positron', 'dark-matter', 'osm-liberty', 'klokantech-basic'],
       defaultStyle: 'osm-bright',
       tileUrlTemplate: `https://maps.geoapify.com/v1/tile/{style}/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_API_KEY}`,
+      routingUrlTemplate: `https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode={mode}&apiKey=${GEOAPIFY_ROUTING_KEY}`,
       center: [37.7855, -122.4015],
       zoom: 14
     }));
+    return;
+  }
+
+  // API Route: Geoapify Turn-by-Turn Routing API Proxy (Key: b5a852f6b97e420ab0850cc32c31c9d9)
+  if (reqUrl === '/api/routing' && req.method === 'GET') {
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const waypoints = urlObj.searchParams.get('waypoints') || '37.7855,-122.4015|37.7940,-122.3950';
+    const mode = urlObj.searchParams.get('mode') || 'drive';
+    const avoid = urlObj.searchParams.get('avoid') || '';
+    const details = urlObj.searchParams.get('details') || 'instruction_details';
+
+    let routeUrl = `https://api.geoapify.com/v1/routing?waypoints=${encodeURIComponent(waypoints)}&mode=${mode}&details=${details}&apiKey=${GEOAPIFY_ROUTING_KEY}`;
+    if (avoid) {
+      routeUrl += `&avoid=${encodeURIComponent(avoid)}`;
+    }
+
+    https.get(routeUrl, (gRes) => {
+      let b = '';
+      gRes.on('data', c => b += c);
+      gRes.on('end', () => {
+        res.writeHead(gRes.statusCode, { 'Content-Type': 'application/json' });
+        res.end(b);
+      });
+    }).on('error', (err) => {
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
     return;
   }
 

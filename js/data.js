@@ -195,11 +195,13 @@ window.TRAFFIC_DATA = {
   ],
 
   geoapify: {
-    apiKey: "dd3fedb3d79c4b2791987648148944e6",
-    geocodingKey: "fdf446b77a594928afc8794041b2d9e1",
+    apiKey: "b5a852f6b97e420ab0850cc32c31c9d9",
+    routingKey: "b5a852f6b97e420ab0850cc32c31c9d9",
+    geocodingKey: "b5a852f6b97e420ab0850cc32c31c9d9",
     reverseKey: "b9a95414ae8a4dd3b9d2f97ae2fc0546",
     autocompleteKey: "509e607576bb4c1d94ee7f92dce287da",
-    tileUrl: "https://maps.geoapify.com/v1/tile/{style}/{z}/{x}/{y}.png?apiKey=dd3fedb3d79c4b2791987648148944e6",
+    tileUrl: "https://maps.geoapify.com/v1/tile/{style}/{z}/{x}/{y}.png?apiKey=b5a852f6b97e420ab0850cc32c31c9d9",
+    routingUrl: "https://api.geoapify.com/v1/routing?waypoints={waypoints}&mode={mode}&apiKey=b5a852f6b97e420ab0850cc32c31c9d9",
     styles: ["osm-bright", "positron", "dark-matter", "osm-liberty", "klokantech-basic"],
     defaultStyle: "osm-bright",
     center: [37.7855, -122.4015],

@@ -22,7 +22,7 @@ class DiagnosticsSuite {
       { id: 10, name: "Activate Emergency Corridor", category: "Corridor System", description: "Spawn Ambulance A01, pre-empt green wave along I1->I3->I4->I6." },
       { id: 11, name: "Compare Classical vs Hybrid", category: "Analytics", description: "Verify Webster rule-based baseline vs QAOA delta calculation." },
       { id: 12, name: "Update Performance Metrics", category: "Telemetry", description: "Recalculate average waiting time, queues, throughput, fuel, CO2." },
-      { id: 13, name: "Geoapify GIS Mapping & Geocoding", category: "GIS System", description: "Verify Geoapify map tiles, autocomplete, forward and reverse geocoding APIs." },
+      { id: 13, name: "Geoapify GIS Mapping, Routing & Geocoding", category: "GIS System", description: "Verify Geoapify map tiles, turn-by-turn routing engine (Key: b5a852f6...), autocomplete, forward and reverse geocoding APIs." },
       { id: 14, name: "Featherless AI Copilot LLM", category: "AI Intelligence", description: "Verify Featherless AI endpoint proxy and streaming chat completions." },
       { id: 15, name: "Responsive Layout Check", category: "Interface", description: "Verify desktop, tablet, and high-DPI viewport boundary safety." },
       { id: 16, name: "Global 3D Earth Globe Engine", category: "Global Twin", description: "Verify Three.js 3D Earth sphere, rotating clouds, night lights, and city beacons." },
@@ -54,12 +54,12 @@ class DiagnosticsSuite {
       { id: 1, timestamp: timeStr(54), severity: "INFO", component: "SystemBoot", message: "WebGL 2.0 context initialized successfully (Three.js r128).", status: "200 OK" },
       { id: 2, timestamp: timeStr(48), severity: "INFO", component: "TrafficSimulation", message: "Engine spawned 8 intersections with 65 autonomous 3D vehicles & railway.", status: "ACTIVE" },
       { id: 3, timestamp: timeStr(40), severity: "INFO", component: "QuantumOptimizer", message: "QUBO Formulation matrix loaded. 8 nodes, 24 phase decision variables.", status: "READY" },
-      { id: 4, timestamp: timeStr(34), severity: "SUCCESS", component: "GeoapifyGIS", message: "Geoapify GIS Map Engine connected (Key: dd3fedb3...). Leaflet 1.9.4 ready.", status: "200 OK" },
-      { id: 5, timestamp: timeStr(28), severity: "SUCCESS", component: "AutocompleteAPI", message: "Geoapify Autocomplete API operational (Key: 509e6075...). As-you-type active.", status: "200 OK" },
-      { id: 6, timestamp: timeStr(22), severity: "SUCCESS", component: "ReverseGeocodeAPI", message: "Geoapify Reverse Geocoding API operational (Key: b9a95414...). Lat/Lon mapping active.", status: "200 OK" },
-      { id: 7, timestamp: timeStr(16), severity: "SUCCESS", component: "GeocodingAPI", message: "Geoapify Forward Geocoding operational (Key: fdf446b7...). Address search active.", status: "200 OK" },
-      { id: 8, timestamp: timeStr(10), severity: "SUCCESS", component: "FeatherlessAI", message: "Featherless AI proxy online (Model: Qwen/Qwen2.5-7B-Instruct).", status: "ONLINE" },
-      { id: 9, timestamp: timeStr(5), severity: "SUCCESS", component: "SignalController", message: "Actuated baseline cycles synchronized (Webster 70s cycle length).", status: "SYNCED" },
+      { id: 4, timestamp: timeStr(34), severity: "SUCCESS", component: "GeoapifyGIS", message: "Geoapify GIS Map Engine connected (Key: b5a852f6...). Leaflet 1.9.4 ready.", status: "200 OK" },
+      { id: 5, timestamp: timeStr(30), severity: "SUCCESS", component: "RoutingAPI", message: "Geoapify Turn-by-Turn Routing API operational (Key: b5a852f6...). Navigation ready.", status: "200 OK" },
+      { id: 6, timestamp: timeStr(24), severity: "SUCCESS", component: "AutocompleteAPI", message: "Geoapify Autocomplete API operational (Key: 509e6075...). As-you-type active.", status: "200 OK" },
+      { id: 7, timestamp: timeStr(18), severity: "SUCCESS", component: "ReverseGeocodeAPI", message: "Geoapify Reverse Geocoding API operational (Key: b9a95414...). Lat/Lon mapping active.", status: "200 OK" },
+      { id: 8, timestamp: timeStr(12), severity: "SUCCESS", component: "GeocodingAPI", message: "Geoapify Forward Geocoding operational (Key: b5a852f6...). Address search active.", status: "200 OK" },
+      { id: 9, timestamp: timeStr(6), severity: "SUCCESS", component: "FeatherlessAI", message: "Featherless AI proxy online (Model: Qwen/Qwen2.5-7B-Instruct).", status: "ONLINE" },
       { id: 10, timestamp: timeStr(1), severity: "INFO", component: "EmergencySystem", message: "Ambulance A01 telemetry linked to GPS transponder.", status: "STANDBY" }
     ];
   }
