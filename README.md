@@ -1,4 +1,4 @@
-LIMO — Quantum-Enhanced Adaptive Urban Traffic Intelligence
+<img width="1400" height="720" alt="limo-animated-architecture (1)" src="https://github.com/user-attachments/assets/691ddd14-c8c7-4260-be21-1fe8f051b291" />LIMO — Quantum-Enhanced Adaptive Urban Traffic Intelligence
 
 <p align="center">
 
@@ -503,13 +503,25 @@ MIT License
 
 Verify that every third-party model, texture, font, video, sound, or other asset used by the project is separately licensed for the intended distribution.
 
-<p align="center">
-  <img src="./assets/limo-animated-hero.svg" alt="LIMO animated closing banner" width="100%" />
-</p>
+![Uploading limo-animated-architect<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" viewBox="0 0 1400 720" role="img" aria-labelledby="title desc">
+<title id="title">Animated LIMO architecture</title>
+<desc id="desc">Traffic data flows through the city, quantum optimization, signal control, emergency routing, cameras, and analytics.</desc>
+<defs><linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#102641"/><stop offset="1" stop-color="#07111e"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+<rect width="1400" height="720" rx="28" fill="#030811"/>
+<g font-family="Inter,Arial,sans-serif" text-anchor="middle"><text x="700" y="62" font-size="28" font-weight="800" fill="#effaff" letter-spacing="6">LIMO SYSTEM FLOW</text><text x="700" y="90" font-size="11" fill="#8fcdfb" letter-spacing="2">ANIMATED DIGITAL-TWIN / QUANTUM-OPTIMIZATION PIPELINE</text>
+<g><rect x="70" y="150" width="250" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="195" y="190" font-size="16" font-weight="800" fill="#eefbff">3D CITY</text><text x="195" y="214" font-size="11" fill="#9ccff0">Traffic • Roads • Signals</text><text x="195" y="236" font-size="10" fill="#6fe0ff">LIVE DIGITAL TWIN</text></g>
+<g><rect x="400" y="150" width="250" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="525" y="190" font-size="16" font-weight="800" fill="#eefbff">QUANTUM ENGINE</text><text x="525" y="214" font-size="11" fill="#9ccff0">QUBO • Ising • QAOA</text><text x="525" y="236" font-size="10" fill="#b897ff">HYBRID OPTIMIZATION</text></g>
+<g><rect x="730" y="150" width="250" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="855" y="190" font-size="16" font-weight="800" fill="#eefbff">SIGNAL CONTROL</text><text x="855" y="214" font-size="11" fill="#9ccff0">Adaptive timing • Safety</text><text x="855" y="236" font-size="10" fill="#5dffb0">AUTO-APPLY</text></g>
+<g><rect x="1060" y="150" width="270" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="1195" y="190" font-size="16" font-weight="800" fill="#eefbff">TRAFFIC RESPONSE</text><text x="1195" y="214" font-size="11" fill="#9ccff0">Vehicles • Queues • Flow</text><text x="1195" y="236" font-size="10" fill="#6fe0ff">REAL-TIME UPDATE</text></g>
+<g><rect x="220" y="405" width="280" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="360" y="445" font-size="16" font-weight="800" fill="#eefbff">EMERGENCY CORRIDOR</text><text x="360" y="469" font-size="11" fill="#9ccff0">Ambulance • Green Wave</text><text x="360" y="491" font-size="10" fill="#ff7185">PRIORITY MODE</text></g>
+<g><rect x="560" y="405" width="280" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="700" y="445" font-size="16" font-weight="800" fill="#eefbff">LIVE CAMERA MATRIX</text><text x="700" y="469" font-size="11" fill="#9ccff0">CAM-01 → CAM-05</text><text x="700" y="491" font-size="10" fill="#6fe0ff">SIMULATED LIVE FEEDS</text></g>
+<g><rect x="900" y="405" width="280" height="110" rx="18" fill="url(#panel)" stroke="#2f658e"/><text x="1040" y="445" font-size="16" font-weight="800" fill="#eefbff">ANALYTICS</text><text x="1040" y="469" font-size="11" fill="#9ccff0">Wait • Queue • CO₂ • Fuel</text><text x="1040" y="491" font-size="10" fill="#5dffb0">PERFORMANCE</text></g>
+<g fill="none" stroke="#67d9ff" stroke-width="4" stroke-linecap="round"><path d="M320 205 H400"/><path d="M650 205 H730"/><path d="M980 205 H1060"/><path d="M1195 260 C1195 345 1050 350 1040 405"/><path d="M855 260 C855 340 760 350 700 405"/><path d="M730 515 H500"/><path d="M840 460 H900"/><path d="M560 460 H500"/></g>
+<g fill="#9eeaff" filter="url(#g)"><circle r="7"><animateMotion dur="3s" repeatCount="indefinite" path="M320 205 H650"/></circle><circle r="7"><animateMotion dur="3s" begin="1s" repeatCount="indefinite" path="M980 205 H1330"/></circle><circle r="7"><animateMotion dur="3.4s" begin=".6s" repeatCount="indefinite" path="M855 260 C855 340 760 350 700 405"/></circle><circle r="7" fill="#ff6f87"><animateMotion dur="3.7s" begin="1.2s" repeatCount="indefinite" path="M1195 260 C1195 345 1050 350 1040 405"/></circle></g>
+<text x="700" y="620" font-size="12" fill="#6e93b4" letter-spacing="2">CONTINUOUS MONITORING • AUTOMATIC OPTIMIZATION • SAFE TRAFFIC RESPONSE</text></g>
+</svg>
+ure (1).svg…]()
 
-<p align="center">
-  <strong>⚛️ LIMO · Quantum Intelligence for Adaptive Urban Mobility</strong>
-</p>
 ### ✨ Highlights & Capabilities
 - 🌍 **Global 3D Earth Globe**: Seamless orbital view with atmosphere, day/night city lights, and smooth zoom transition into urban hubs.
 - 🗼 **Avengers Tower-Style Superhero Landmark**: $86\text{m}$ futuristic skyscraper with cantilevered flight deck/helipad, PBR blue-tinted glass, sweeping observation prow, rooftop radar array, and landscaped entrance plaza.
