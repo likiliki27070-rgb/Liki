@@ -3735,6 +3735,29 @@ async function fetchGeoapifyRoute(waypoints, mode = 'drive', avoid = '') {
   }
 }
 
+// Geoapify Reachability & Isoline helper with fallback (Key: 5557e9758dbf492abbc58c3de058f972)
+async function fetchGeoapifyIsoline(lat, lon, range = 300, type = 'time', mode = 'drive') {
+  if (lat == null || lon == null) return null;
+  const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '5557e9758dbf492abbc58c3de058f972';
+  try {
+    const url = `/api/isoline?lat=${lat}&lon=${lon}&type=${type}&mode=${mode}&range=${range}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    try {
+      const fbUrl = `https://api.geoapify.com/v1/isoline?lat=${lat}&lon=${lon}&type=${type}&mode=${mode}&range=${range}&apiKey=${isolineKey}`;
+      const fb = await fetch(fbUrl);
+      const fbData = await fb.json();
+      return fbData;
+    } catch (e2) {
+      console.warn("Isoline request failed:", e2);
+      return null;
+    }
+  }
+}
+
 // Helper to generate dynamic HTML divIcon for intersection
 function getIntersectionDivIcon(node, isEmergencyCorridor) {
   const isGreen = node.phase.includes('GREEN');
@@ -3967,6 +3990,7 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const [statusMessage, setStatusMessage] = useState('Geoapify GIS Engine Connected (8 Nodes)');
   const autocompleteTimer = useRef(null);
   const routeLayersRef = useRef([]);
+  const isolineLayersRef = useRef([]);
 
   // Turn-by-Turn Routing States
   const [activeRoute, setActiveRoute] = useState(null);
@@ -3976,8 +4000,16 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
   const [isRouting, setIsRouting] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
 
+  // Reachability & Isoline States (Key: 5557e9758dbf492abbc58c3de058f972)
+  const [activeIsoline, setActiveIsoline] = useState(null);
+  const [isolineNode, setIsolineNode] = useState('I3');
+  const [isolineRange, setIsolineRange] = useState(300);
+  const [isolineMode, setIsolineMode] = useState('drive');
+  const [isCalculatingIsoline, setIsCalculatingIsoline] = useState(false);
+
   const apiKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.apiKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
   const routingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.routingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
+  const isolineKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.isolineKey) || '5557e9758dbf492abbc58c3de058f972';
   const geocodingKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.geocodingKey) || 'b5a852f6b97e420ab0850cc32c31c9d9';
   const reverseKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.reverseKey) || 'b9a95414ae8a4dd3b9d2f97ae2fc0546';
   const autocompleteKey = (window.TRAFFIC_DATA && window.TRAFFIC_DATA.geoapify && window.TRAFFIC_DATA.geoapify.autocompleteKey) || '509e607576bb4c1d94ee7f92dce287da';
@@ -4072,6 +4104,8 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
       if (mapRef.current) {
         routeLayersRef.current.forEach(l => l.remove());
         routeLayersRef.current = [];
+        isolineLayersRef.current.forEach(l => l.remove());
+        isolineLayersRef.current = [];
         mapRef.current.remove();
         mapRef.current = null;
         markersRef.current = {};
@@ -4455,6 +4489,98 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
     setStatusMessage('Active route cleared.');
   };
 
+  // Geoapify Reachability & Isoline Zone Calculation (Key: 5557e9758dbf492abbc58c3de058f972)
+  const calculateIsoline = async (nodeId = isolineNode, range = isolineRange, mode = isolineMode) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const node = simState.intersections.find(n => n.id === nodeId);
+    if (!node) {
+      setStatusMessage(`Isoline error: Node ${nodeId} not found.`);
+      return;
+    }
+
+    setIsCalculatingIsoline(true);
+    const rangeMin = Math.round(range / 60);
+    setStatusMessage(`Computing ${rangeMin}-min ${mode} reachability isochrone from ${node.id} (${node.name}) via Geoapify...`);
+
+    const data = await fetchGeoapifyIsoline(node.lat, node.lon, range, 'time', mode);
+    setIsCalculatingIsoline(false);
+
+    if (!data || !data.features || !data.features[0]) {
+      setStatusMessage(`Isoline generation failed for node ${nodeId}. Check API key 5557e975...`);
+      return;
+    }
+
+    // Clear previous isoline layer
+    isolineLayersRef.current.forEach(l => l.remove());
+    isolineLayersRef.current = [];
+
+    const isEm = mode === 'emergency' || node.id === 'I1' || node.id === 'I3';
+    const primaryColor = isEm ? '#e11d48' : '#0891b2';
+    const fillColor = isEm ? '#f43f5e' : '#06b6d4';
+
+    // Render GeoJSON Polygon / MultiPolygon
+    const geoLayer = L.geoJSON(data, {
+      style: {
+        color: primaryColor,
+        weight: 2.5,
+        opacity: 0.9,
+        dashArray: '6, 4',
+        fillColor: fillColor,
+        fillOpacity: 0.22
+      }
+    }).addTo(map);
+
+    geoLayer.bindTooltip(`
+      <div style="font-family: 'Inter', sans-serif; font-size: 11px;">
+        <strong style="color: ${primaryColor};">📡 ${rangeMin}-Minute Reachability Zone</strong><br/>
+        Center: <b>${node.id} - ${node.name}</b><br/>
+        Mode: <b>${mode.toUpperCase()}</b> | Range: <b>${range}s (${rangeMin} min)</b>
+      </div>
+    `, { sticky: true });
+
+    isolineLayersRef.current.push(geoLayer);
+
+    // Center beacon pin
+    const beaconIcon = L.divIcon({
+      className: 'isoline-center-pin',
+      html: `
+        <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; inset: 0; border-radius: 9999px; background: ${fillColor}; opacity: 0.4; animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <div style="width: 24px; height: 24px; border-radius: 9999px; background: ${primaryColor}; border: 2px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 11px;">
+            📡
+          </div>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    const beaconMarker = L.marker([node.lat, node.lon], { icon: beaconIcon }).addTo(map);
+    beaconMarker.bindTooltip(`<b>Isoline Hub:</b> ${node.id} - ${node.name}`, { sticky: true });
+    isolineLayersRef.current.push(beaconMarker);
+
+    map.fitBounds(geoLayer.getBounds(), { padding: [40, 40] });
+
+    setActiveIsoline({
+      nodeId,
+      nodeName: node.name,
+      range,
+      rangeMin,
+      mode,
+      geometryType: data.features[0].geometry.type
+    });
+
+    setStatusMessage(`Reachability Isochrone plotted: ${rangeMin} min ${mode} zone centered on ${node.id} (Key: 5557e975...)`);
+  };
+
+  const clearActiveIsoline = () => {
+    isolineLayersRef.current.forEach(l => l.remove());
+    isolineLayersRef.current = [];
+    setActiveIsoline(null);
+    setStatusMessage('Active reachability zone cleared.');
+  };
+
   return (
     <div className="h-full flex flex-col space-y-4">
       {/* Top Header & GIS Command Bar */}
@@ -4623,6 +4749,29 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                     title="Clear Active Route Polyline"
                   >
                     ✕ Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Isoline Reachability Button */}
+              <div className={`flex items-center space-x-1 backdrop-blur-md p-1 rounded-xl border pointer-events-auto shadow-sm ${
+                isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-950/90 border-slate-800'
+              }`}>
+                <button
+                  onClick={() => calculateIsoline('I3', 300, 'drive')}
+                  disabled={isCalculatingIsoline}
+                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-teal-500/10 text-teal-700 dark:text-teal-300 hover:bg-teal-500/20 transition flex items-center space-x-1"
+                  title="Project 5-minute reachability isochrone from central hub I3 (Geoapify Isoline API)"
+                >
+                  <span>📡 5m Isochrone</span>
+                </button>
+                {activeIsoline && (
+                  <button
+                    onClick={clearActiveIsoline}
+                    className="px-2 py-1 text-[11px] font-bold rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
+                    title="Clear Reachability Isochrone Zone"
+                  >
+                    ✕ Zone
                   </button>
                 )}
               </div>
@@ -4818,12 +4967,135 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
             )}
           </div>
 
+          {/* Dedicated Geoapify Reachability & Isoline Engine (Key: 5557e9758dbf492abbc58c3de058f972) */}
+          <div className={`p-4 rounded-2xl border space-y-3 ${
+            isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="text-base">📡</span>
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
+                  Geoapify Isoline / Reachability
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 font-bold">
+                Key: {isolineKey.slice(0, 6)}...
+              </span>
+            </div>
+
+            {/* Travel Mode Selector */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl">
+              {[
+                { id: 'drive', label: 'Drive', icon: '🚗' },
+                { id: 'bicycle', label: 'Bike', icon: '🚲' },
+                { id: 'walk', label: 'Walk', icon: '🚶' }
+              ].map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setIsolineMode(m.id)}
+                  className={`py-1 rounded-lg text-[10px] font-bold flex flex-col items-center transition ${
+                    isolineMode === m.id
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : isWhite ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-xs">{m.icon}</span>
+                  <span>{m.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Hub Node & Time Range Selectors */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label className={`block text-[10px] font-semibold mb-1 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Hub Intersection
+                </label>
+                <select
+                  value={isolineNode}
+                  onChange={(e) => setIsolineNode(e.target.value)}
+                  className={`w-full px-2 py-1.5 rounded-xl border text-xs font-mono font-medium outline-none ${
+                    isWhite ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-white'
+                  }`}
+                >
+                  {simState.intersections.map(n => (
+                    <option key={n.id} value={n.id}>{n.id} - {n.name.slice(0, 14)}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`block text-[10px] font-semibold mb-1 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>
+                  Reachability Buffer
+                </label>
+                <select
+                  value={isolineRange}
+                  onChange={(e) => setIsolineRange(Number(e.target.value))}
+                  className={`w-full px-2 py-1.5 rounded-xl border text-xs font-mono font-medium outline-none ${
+                    isWhite ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-white'
+                  }`}
+                >
+                  <option value={300}>5 min (300s)</option>
+                  <option value={600}>10 min (600s)</option>
+                  <option value={900}>15 min (900s)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Compute Isoline Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => calculateIsoline(isolineNode, isolineRange, isolineMode)}
+                disabled={isCalculatingIsoline}
+                className="w-full py-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+              >
+                {isCalculatingIsoline ? <span>Projecting...</span> : <span>📡 Plot Reachability</span>}
+              </button>
+              <button
+                onClick={() => calculateIsoline('I1', 300, 'drive')}
+                disabled={isCalculatingIsoline}
+                className="w-full py-2 bg-gradient-to-r from-rose-600 to-teal-600 hover:from-rose-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center space-x-1"
+              >
+                <span>🚑 5m Response</span>
+              </button>
+            </div>
+
+            {/* Active Isoline Telemetry */}
+            {activeIsoline && (
+              <div className={`p-3 rounded-xl border space-y-2 text-xs ${
+                isWhite ? 'bg-teal-50/70 border-teal-200' : 'bg-teal-950/30 border-teal-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-teal-700 dark:text-teal-300">
+                    Zone: {activeIsoline.nodeId} ({activeIsoline.rangeMin}m {activeIsoline.mode.toUpperCase()})
+                  </span>
+                  <button
+                    onClick={clearActiveIsoline}
+                    className="text-[10px] font-semibold text-rose-500 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-teal-100' : 'bg-slate-900 border-teal-900'}`}>
+                    <span className="text-[10px] text-slate-500 block">Hub Center</span>
+                    <strong className="text-xs font-mono text-teal-600 dark:text-teal-400">{activeIsoline.nodeId} ({activeIsoline.nodeName})</strong>
+                  </div>
+                  <div className={`p-2 rounded-lg border ${isWhite ? 'bg-white border-teal-100' : 'bg-slate-900 border-teal-900'}`}>
+                    <span className="text-[10px] text-slate-500 block">Polygon Type</span>
+                    <strong className="text-xs font-mono text-teal-600 dark:text-teal-400">{activeIsoline.geometryType}</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* API Keys & Status Card */}
           <div className={`p-4 rounded-2xl border space-y-3 ${
             isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
           }`}>
             <h3 className={`text-xs font-bold uppercase tracking-wider ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
-              Geoapify GIS Services (5 Active APIs)
+              Geoapify GIS Services (6 Active APIs)
             </h3>
             <div className="space-y-2 text-xs">
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
@@ -4834,6 +5106,15 @@ function GeoapifyMapView({ simState, onSelectIntersection, theme }) {
                   <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {routingKey.slice(0, 8)}...</div>
                 </div>
                 <span className="text-[10px] font-bold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">ACTIVE</span>
+              </div>
+              <div className={`p-2 rounded-xl border flex items-center justify-between ${
+                isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+              }`}>
+                <div>
+                  <div className="font-semibold">Reachability & Isoline API</div>
+                  <div className={`text-[10px] font-mono ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Key: {isolineKey.slice(0, 8)}...</div>
+                </div>
+                <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">ACTIVE</span>
               </div>
               <div className={`p-2 rounded-xl border flex items-center justify-between ${
                 isWhite ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
