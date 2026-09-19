@@ -20,6 +20,13 @@
 <g transform="translate(1080 64)"><rect width="215" height="38" rx="19" fill="#071421" stroke="#285a77"/><circle cx="24" cy="19" r="6" fill="#45ff9a"><animate attributeName="opacity" values=".3;1;.3" dur="1.5s" repeatCount="indefinite"/></circle><text x="40" y="24" font-family="Inter,Arial,sans-serif" font-size="10" font-weight="700" fill="#a8dfff" letter-spacing="2">DIGITAL TWIN ONLINE</text></g>
 </svg>
 
+<p align="center">
+  <a href="https://github.com/likiliki27070-rgb/limo-Quantum-Traffic-Optimization">
+    <img src="assets/limo_logo.jpg" alt="LIMO Official Brand Logo" width="180" style="border-radius: 24px; box-shadow: 0 10px 30px rgba(0, 208, 245, 0.4); margin: 12px 0;" />
+  </a>
+</p>
+
+<p align="center">
   <strong>🌍 3D Digital Twin · ⚛️ QUBO/QAOA · 🚦 Adaptive Signals · 🚑 Emergency Green Corridor · 📹 Live CCTV Simulation</strong>
 </p>
 

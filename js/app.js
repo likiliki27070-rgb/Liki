@@ -729,20 +729,23 @@ function Sidebar({ activeTab, setActiveTab, onReplayIntro, onOpenDiagnostics, th
       isWhite ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/95 border-slate-800'
     }`}>
       <div>
-        {/* Brand Header */}
+        {/* Brand Header with LIMO Official Logo */}
         <div className={`p-5 border-b ${isWhite ? 'border-slate-200' : 'border-slate-800/80'}`}>
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-indigo-600 to-purple-600 flex items-center justify-center shadow-md">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
+            <div className="relative group shrink-0">
+              <img 
+                src="assets/limo_logo.jpg" 
+                alt="LIMO Brand Logo" 
+                className="h-11 w-11 rounded-xl object-cover ring-2 ring-cyan-400/50 shadow-lg transition-transform group-hover:scale-105" 
+              />
+              <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 border-2 border-slate-900 ring-1 ring-emerald-400 animate-pulse"></span>
             </div>
-            <div>
-              <h1 className={`text-base font-bold tracking-wider flex items-center gap-1.5 ${isWhite ? 'text-slate-900' : 'text-white'}`}>
-                Q-TRAFFIC
-                <span className="text-[10px] bg-cyan-500/10 text-cyan-600 font-mono px-1.5 py-0.5 rounded border border-cyan-500/20">v2.4</span>
+            <div className="truncate">
+              <h1 className="text-base font-black tracking-wider flex items-center gap-1.5">
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">LIMO</span>
+                <span className="text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-mono px-1.5 py-0.5 rounded border border-cyan-500/20 font-bold">VRP</span>
               </h1>
-              <p className={`text-[11px] font-medium leading-tight ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Quantum Traffic Optimization</p>
+              <p className={`text-[11px] font-medium leading-tight truncate ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Quantum Digital Twin</p>
             </div>
           </div>
         </div>
@@ -856,11 +859,16 @@ function TopBar({
     }`}>
       {/* Collapsible Top Status Strip: LIMO | NETWORK ONLINE | 8 INTERSECTIONS | OPTIMIZER ACTIVE | EMERGENCY STATUS | CURRENT TIME */}
       <div className="flex items-center space-x-2">
-        {/* LIMO Badge */}
-        <div className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 border shadow-xs ${
+        {/* LIMO Badge with Logo */}
+        <div className={`px-2 py-1 rounded-xl text-xs font-mono font-bold flex items-center space-x-2 border shadow-xs transition group hover:border-cyan-500/50 ${
           isWhite ? 'bg-slate-100 border-slate-300 text-slate-900' : 'bg-slate-950 border-slate-800 text-cyan-400'
         }`}>
-          <span className="font-black tracking-wider">LIMO</span>
+          <img 
+            src="assets/limo_logo.jpg" 
+            alt="LIMO" 
+            className="w-5 h-5 rounded-md object-cover ring-1 ring-cyan-400/40 shadow-xs" 
+          />
+          <span className="font-black tracking-wider bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">LIMO</span>
         </div>
 
         {/* City Selector Pill */}
@@ -2668,12 +2676,14 @@ function CinematicIntroView({ scene, onSkip, onLaunch, isMuted, onToggleSound, t
       {/* Top Controls */}
       <div className="flex justify-between items-center z-20 pointer-events-auto">
         <div className="flex items-center space-x-3">
-          <div className="h-8 w-8 rounded-lg bg-cyan-600 text-white flex items-center justify-center shadow-md">
-            <span className="font-mono text-xs font-bold">Q-T</span>
-          </div>
+          <img 
+            src="assets/limo_logo.jpg" 
+            alt="LIMO Logo" 
+            className="h-9 w-9 rounded-xl object-cover ring-2 ring-cyan-400/50 shadow-md" 
+          />
           <div>
-            <span className={`text-xs font-mono tracking-widest uppercase block ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>Quantum Wave Experience</span>
-            <span className={`text-[10px] hidden sm:inline ${isWhite ? 'text-cyan-700' : 'text-cyan-400'}`}>💧 Interactive Water Drop Simulation</span>
+            <span className={`text-xs font-mono tracking-widest uppercase block font-bold ${isWhite ? 'text-slate-800' : 'text-slate-200'}`}>LIMO · Digital Twin</span>
+            <span className={`text-[10px] hidden sm:inline ${isWhite ? 'text-cyan-700 font-medium' : 'text-cyan-400'}`}>💧 Quantum Liquid Wave Experience</span>
           </div>
         </div>
 
@@ -2768,20 +2778,28 @@ function CinematicIntroView({ scene, onSkip, onLaunch, isMuted, onToggleSound, t
         )}
 
         {scene === 8 && (
-          <div className="space-y-6 animate-fade-in backdrop-blur-sm bg-white/50 dark:bg-slate-900/50 p-8 rounded-3xl border border-white/40 dark:border-slate-800/40 shadow-lg">
+          <div className="space-y-5 animate-fade-in backdrop-blur-sm bg-white/50 dark:bg-slate-900/50 p-8 rounded-3xl border border-white/40 dark:border-slate-800/40 shadow-xl flex flex-col items-center">
+            <div className="relative group">
+              <img 
+                src="assets/limo_logo.jpg" 
+                alt="LIMO Official Brand Logo" 
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shadow-2xl border-2 border-cyan-400/60 ring-4 ring-cyan-500/20 transition-transform group-hover:scale-105" 
+              />
+              <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-slate-900 ring-2 ring-emerald-400 animate-pulse"></span>
+            </div>
             <div>
-              <h1 className="text-5xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-700">
-                QUANTUM TRAFFIC
+              <h1 className="text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600">
+                LIMO
               </h1>
-              <h3 className={`text-sm mt-2 font-medium tracking-wide ${isWhite ? 'text-slate-700' : 'text-slate-300'}`}>
-                Quantum-Enhanced Adaptive Urban Traffic Optimization
+              <h3 className={`text-sm mt-1.5 font-bold tracking-wide ${isWhite ? 'text-slate-800' : 'text-slate-200'}`}>
+                limo-Quantum-Traffic-Optimization
               </h3>
-              <p className={`text-xs mt-1 ${isWhite ? 'text-slate-500' : 'text-slate-400'}`}>Adaptive Intelligence for the Future of Urban Mobility</p>
+              <p className={`text-xs mt-1 ${isWhite ? 'text-slate-600' : 'text-slate-400'}`}>Quantum-Enhanced Adaptive Urban Traffic Intelligence & 3D Digital Twin</p>
             </div>
 
             <button
               onClick={onLaunch}
-              className="pointer-events-auto px-8 py-3 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg transition transform hover:scale-105"
+              className="pointer-events-auto px-8 py-3 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg transition transform hover:scale-105"
             >
               LAUNCH COMMAND CENTER →
             </button>
@@ -3482,14 +3500,17 @@ Guidelines:
         isWhite ? 'bg-white/95 border-slate-200' : 'bg-slate-900/90 border-slate-800'
       }`}>
         <div className="flex items-center space-x-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-500 flex items-center justify-center shadow-md text-white font-bold">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+          <div className="relative group shrink-0">
+            <img 
+              src="assets/limo_logo.jpg" 
+              alt="LIMO AI Copilot" 
+              className="h-10 w-10 rounded-xl object-cover ring-2 ring-purple-500/50 shadow-md" 
+            />
+            <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 border-2 border-slate-900 ring-1 ring-emerald-400 animate-pulse"></span>
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h3 className="font-bold text-sm tracking-wide">QUANTUM AI COPILOT</h3>
+              <h3 className="font-bold text-sm tracking-wide">LIMO AI COPILOT</h3>
               <span className="text-[10px] bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 font-mono px-2 py-0.5 rounded-full border border-purple-300 dark:border-purple-700">
                 Featherless AI
               </span>
