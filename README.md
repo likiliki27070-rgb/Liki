@@ -70,6 +70,8 @@ The visuals use self-contained SVG assets with animation rather than JavaScript 
 
 🧭 Core Experience
 
+
+
                  🌍 GLOBAL 3D EARTH
                         │
                         ▼
@@ -242,12 +244,6 @@ SYSTEM VALIDATION COMPLETE
 NO DETECTED CRITICAL ERRORS
 
 This should be treated as a prototype diagnostic result rather than a guarantee that no possible defect exists.
-
-🧠 Animated Architecture
-
-<p align="center">
-  <img src="./assets/limo-animated-architecture.svg" alt="Animated LIMO architecture" width="100%" />
-</p>
 
 🎨 Visual Language
 
