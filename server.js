@@ -599,7 +599,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
-  console.log(`QUANTUM TRAFFIC - Smart City Optimization Command Center`);
+  console.log(`LIMO (limo-Quantum-Traffic-Optimization) Command Center`);
   console.log(`Featherless AI Endpoint: https://api.featherless.ai/v1`);
   console.log(`Featherless Model: ${DEFAULT_FEATHERLESS_MODEL}`);
   console.log(`Server listening on http://localhost:${PORT}`);

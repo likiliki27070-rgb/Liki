@@ -2,7 +2,7 @@ const fs = require('fs');
 const vm = require('vm');
 const http = require('http');
 
-console.log('=== QUANTUM TRAFFIC SYSTEM VERIFICATION SUITE ===');
+console.log('=== LIMO (limo-Quantum-Traffic-Optimization) VERIFICATION SUITE ===');
 
 // 1. Sandbox setup
 const sandbox = {

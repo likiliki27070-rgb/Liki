@@ -301,7 +301,7 @@ QAOA
 Traffic Optimization
 Smart City
 
-The current package.json identifies the package as quantum-traffic, version 1.0.0, with server.js as the main entry point.
+The current package.json identifies the package as limo-quantum-traffic-optimization, version 1.0.0, with server.js as the main entry point.
 
 Scripts:
 

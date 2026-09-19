@@ -1,7 +1,7 @@
 {
-  "name": "quantum-traffic",
+  "name": "limo-quantum-traffic-optimization",
   "version": "1.0.0",
-  "description": "Quantum-Enhanced Adaptive Urban Traffic Optimization - Interactive 3D Prototype",
+  "description": "LIMO (limo-Quantum-Traffic-Optimization) - Quantum-Enhanced Adaptive Urban Traffic Optimization & Digital Twin",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

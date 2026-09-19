@@ -155,7 +155,7 @@ class DiagnosticsSuite {
 
   copyDiagnosticsToClipboard() {
     const summary = this.getSummary();
-    const text = `QUANTUM TRAFFIC SYSTEM DIAGNOSTICS REPORT
+    const text = `LIMO (limo-Quantum-Traffic-Optimization) DIAGNOSTICS REPORT
 Status: ${summary.overallStatus}
 Total Tests: ${summary.total}
 Passed: ${summary.passed}
