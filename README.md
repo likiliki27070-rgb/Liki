@@ -118,3 +118,29 @@
     <img src="https://cdn.instagram.com/buttons/v2/default-yellow.png" width="200"/>
   </a>
 </p>
+
+---
+
+# 🏙️ Quantum-Enhanced Adaptive Urban Traffic Optimization (Digital Twin)
+
+> A high-fidelity, interactive 3D smart-city digital twin platform featuring autonomous quantum optimization (QAOA/QUBO), realistic mixed-traffic simulation, physically-based materials, and an iconic **Avengers Tower-style corporate headquarters landmark**.
+
+### ✨ Highlights & Capabilities
+- 🌍 **Global 3D Earth Globe**: Seamless orbital view with atmosphere, day/night city lights, and smooth zoom transition into urban hubs.
+- 🗼 **Avengers Tower-Style Superhero Landmark**: $86\text{m}$ futuristic skyscraper with cantilevered flight deck/helipad, PBR blue-tinted glass, sweeping observation prow, rooftop radar array, and landscaped entrance plaza.
+- 🎥 **Cinematic Landmark Camera**: 3-stage animated transition (`Exterior` $\rightarrow$ `Entrance Plaza` $\rightarrow$ `Skyline View`) with a dedicated `LIMO LANDMARK` telemetry HUD.
+- 🚗 **Realistic Mixed Traffic**: 8 vehicle classes (sedans, SUVs, motorcycles, scooters, bicycles, vans, buses, trucks, paramedic ambulance) with mass-aware braking, two-wheeler lean physics, and smooth quadratic Bezier turns.
+- ⚡ **Autonomous Quantum Optimizer**: Continuous background network surveillance triggering QUBO/QAOA signal timing optimization with 30s anti-thrashing cooldown and municipal safety validation.
+- 🚑 **Emergency Green Corridor**: Dynamic priority green-wave preemption with real-time ambulance tracking.
+- 📹 **Live CCTV Matrix**: 5-feed camera wall (`CAM-01` to `CAM-05`) with timecodes, scanlines, and skyline silhouette rendering.
+- 🩺 **25-Point Diagnostic Suite**: Comprehensive automated QA verification ensuring zero runtime defects (`SYSTEM VALIDATION COMPLETE - NO DETECTED CRITICAL ERRORS`).
+
+### 🚀 Getting Started
+```bash
+# Install dependencies
+npm install
+
+# Start the simulation server
+npm start
+```
+Then open your browser to `http://localhost:3000`.
