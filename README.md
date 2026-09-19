@@ -520,6 +520,10 @@ Verify that every third-party model, texture, font, video, sound, or other asset
 </svg>
 ure (1).svg…]()
 
+<img width="1400" height="720" alt="limo-animated-architecture (1)" src="https://github.com/user-attachments/assets/691ddd14-c8c7-4260-be21-1fe8f051b291" />LIMO — Quantum-Enhanced Adaptive Urban Traffic Intelligence
+
+<p align="center">
+
 ### ✨ Highlights & Capabilities
 - 🌍 **Global 3D Earth Globe**: Seamless orbital view with atmosphere, day/night city lights, and smooth zoom transition into urban hubs.
 - 🗼 **Avengers Tower-Style Superhero Landmark**: $86\text{m}$ futuristic skyscraper with cantilevered flight deck/helipad, PBR blue-tinted glass, sweeping observation prow, rooftop radar array, and landscaped entrance plaza.
